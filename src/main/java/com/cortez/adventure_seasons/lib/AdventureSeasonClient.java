@@ -1,0 +1,51 @@
+package com.cortez.adventure_seasons.lib;
+
+
+import com.cortez.adventure_seasons.AdventureSeasons;
+import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
+import com.cortez.adventure_seasons.lib.AdventureSeason;
+import com.cortez.adventure_seasons.lib.hud.SeasonCalendarTooltipRenderer;
+import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
+import com.cortez.adventure_seasons.lib.resources.GrassSeasonColors;
+import com.cortez.adventure_seasons.lib.season.Season;
+import com.cortez.adventure_seasons.lib.season.SeasonState;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.text.Text;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class AdventureSeasonClient
+{
+    private static final Map<RegistryKey<World>, Season.SubSeason> lastRenderedSeasonMap = new HashMap<>();
+
+    public void init(){
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GrassSeasonColors());
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new FoliageSeasonColors());
+
+        ClientTickEvents.END_WORLD_TICK.register((clientWorld) -> {
+            if (SeasonState.getSubSeason() != lastRenderedSeasonMap.get(clientWorld.getRegistryKey())) {
+                lastRenderedSeasonMap.put(clientWorld.getRegistryKey(), SeasonState.getSubSeason());
+                MinecraftClient.getInstance().worldRenderer.reload();
+            }
+        });
+
+        FabricLoader.getInstance().getModContainer(AdventureSeasons.MODID).ifPresent((container) -> {
+            ResourceManagerHelper.registerBuiltinResourcePack(AdventureSeason.identifier("seasonal_lush_caves"), container, Text.literal("Seasonal Lush Caves"), ResourcePackActivationType.DEFAULT_ENABLED);
+        });
+
+        SeasonCalendarTooltipRenderer.register();
+    }
+}

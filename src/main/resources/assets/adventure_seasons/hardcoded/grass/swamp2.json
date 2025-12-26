@@ -1,0 +1,19 @@
+{
+  "spring": "0x6A7039",
+  "summer": "0x6A7039",
+  "autumn": "0x6A7039",
+  "winter": "0x6A7039",
+
+  "early_spring": "0x727845",
+  "mid_spring": "0x6A7039",
+  "late_spring": "0x656835",
+  "early_summer": "0x6A7039",
+  "mid_summer": "0x6A7039",
+  "late_summer": "0x676A38",
+  "early_autumn": "0x6A6839",
+  "mid_autumn": "0x6A7039",
+  "late_autumn": "0x5F5F30",
+  "early_winter": "0x5A6030",
+  "mid_winter": "0x6A7039",
+  "late_winter": "0x6D7540"
+}

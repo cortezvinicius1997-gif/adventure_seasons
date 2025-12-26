@@ -1,0 +1,196 @@
+{
+  "variants": {
+    "facing=north,subseason=early_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_early_spring",
+      "y": 180
+    },
+    "facing=south,subseason=early_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_early_spring",
+      "y": 0
+    },
+    "facing=east,subseason=early_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_early_spring",
+      "y": 270
+    },
+    "facing=west,subseason=early_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_early_spring",
+      "y": 90
+    },
+    "facing=north,subseason=mid_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_spring",
+      "y": 180
+    },
+    "facing=south,subseason=mid_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_spring",
+      "y": 0
+    },
+    "facing=east,subseason=mid_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_spring",
+      "y": 270
+    },
+    "facing=west,subseason=mid_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_spring",
+      "y": 90
+    },
+    "facing=north,subseason=late_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_late_spring",
+      "y": 180
+    },
+    "facing=south,subseason=late_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_late_spring",
+      "y": 0
+    },
+    "facing=east,subseason=late_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_late_spring",
+      "y": 270
+    },
+    "facing=west,subseason=late_spring": {
+      "model": "adventure_seasons:block/calendar/calendar_late_spring",
+      "y": 90
+    },
+    "facing=north,subseason=early_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_early_summer",
+      "y": 180
+    },
+    "facing=south,subseason=early_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_early_summer",
+      "y": 0
+    },
+    "facing=east,subseason=early_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_early_summer",
+      "y": 270
+    },
+    "facing=west,subseason=early_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_early_summer",
+      "y": 90
+    },
+    "facing=north,subseason=mid_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_summer",
+      "y": 180
+    },
+    "facing=south,subseason=mid_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_summer",
+      "y": 0
+    },
+    "facing=east,subseason=mid_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_summer",
+      "y": 270
+    },
+    "facing=west,subseason=mid_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_summer",
+      "y": 90
+    },
+    "facing=north,subseason=late_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_late_summer",
+      "y": 180
+    },
+    "facing=south,subseason=late_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_late_summer",
+      "y": 0
+    },
+    "facing=east,subseason=late_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_late_summer",
+      "y": 270
+    },
+    "facing=west,subseason=late_summer": {
+      "model": "adventure_seasons:block/calendar/calendar_late_summer",
+      "y": 90
+    },
+    "facing=north,subseason=early_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_early_autumn",
+      "y": 180
+    },
+    "facing=south,subseason=early_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_early_autumn",
+      "y": 0
+    },
+    "facing=east,subseason=early_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_early_autumn",
+      "y": 270
+    },
+    "facing=west,subseason=early_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_early_autumn",
+      "y": 90
+    },
+    "facing=north,subseason=mid_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_autumn",
+      "y": 180
+    },
+    "facing=south,subseason=mid_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_autumn",
+      "y": 0
+    },
+    "facing=east,subseason=mid_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_autumn",
+      "y": 270
+    },
+    "facing=west,subseason=mid_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_autumn",
+      "y": 90
+    },
+    "facing=north,subseason=late_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_late_autumn",
+      "y": 180
+    },
+    "facing=south,subseason=late_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_late_autumn",
+      "y": 0
+    },
+    "facing=east,subseason=late_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_late_autumn",
+      "y": 270
+    },
+    "facing=west,subseason=late_autumn": {
+      "model": "adventure_seasons:block/calendar/calendar_late_autumn",
+      "y": 90
+    },
+    "facing=north,subseason=early_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_early_winter",
+      "y": 180
+    },
+    "facing=south,subseason=early_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_early_winter",
+      "y": 0
+    },
+    "facing=east,subseason=early_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_early_winter",
+      "y": 270
+    },
+    "facing=west,subseason=early_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_early_winter",
+      "y": 90
+    },
+    "facing=north,subseason=mid_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_winter",
+      "y": 180
+    },
+    "facing=south,subseason=mid_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_winter",
+      "y": 0
+    },
+    "facing=east,subseason=mid_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_winter",
+      "y": 270
+    },
+    "facing=west,subseason=mid_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_mid_winter",
+      "y": 90
+    },
+    "facing=north,subseason=late_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_late_winter",
+      "y": 180
+    },
+    "facing=south,subseason=late_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_late_winter",
+      "y": 0
+    },
+    "facing=east,subseason=late_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_late_winter",
+      "y": 270
+    },
+    "facing=west,subseason=late_winter": {
+      "model": "adventure_seasons:block/calendar/calendar_late_winter",
+      "y": 90
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+	"format_version": "1.9.0",
+	"credit": "Made with Blockbench",
+	"textures": {
+		"0": "adventure_seasons:block/season_sensor_side",
+		"1": "adventure_seasons:block/season_sensor_summer_top",
+		"particle": "adventure_seasons:block/season_sensor_side"
+	},
+	"elements": [
+		{
+			"from": [0, 0, 0],
+			"to": [16, 4, 16],
+			"faces": {
+				"north": {"uv": [0, 0, 16, 6], "texture": "#0"},
+				"east": {"uv": [0, 0, 16, 6], "texture": "#0"},
+				"south": {"uv": [0, 0, 16, 6], "texture": "#0"},
+				"west": {"uv": [0, 0, 16, 6], "texture": "#0"},
+				"up": {"uv": [0, 0, 16, 16], "texture": "#1"},
+				"down": {"uv": [0, 0, 16, 16], "texture": "#0"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [60, 5, 3],
+			"translation": [4.75, 2.25, 5.25],
+			"scale": [0.93, 0.99, 1]
+		},
+		"firstperson_lefthand": {
+			"translation": [-4.75, 10, -25]
+		},
+        "gui": {
+          "rotation": [40, -17, 0],
+          "translation": [0, 3.75, 0],
+          "scale": [0.86, 0.86, 0.86]
+        }
+	},
+	"groups": [
+		{
+			"name": "VoxelShapes",
+			"origin": [0, 0, 0],
+			"color": 0,
+			"children": [0]
+		}
+	]
+}

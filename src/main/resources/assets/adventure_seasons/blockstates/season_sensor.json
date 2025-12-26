@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "season=autumn": { "model": "adventure_seasons:block/season_sensor_autumn" },
+    "season=spring": { "model": "adventure_seasons:block/season_sensor_spring" },
+    "season=summer": { "model": "adventure_seasons:block/season_sensor_summer" },
+    "season=winter": { "model": "adventure_seasons:block/season_sensor_winter" }
+  }
+}

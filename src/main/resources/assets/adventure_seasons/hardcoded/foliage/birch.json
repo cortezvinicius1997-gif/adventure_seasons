@@ -1,0 +1,18 @@
+{
+  "spring": "0x80A755",
+  "summer": "0x81B844",
+  "autumn": "0xD66800",
+  "winter": "0x665026",
+  "early_spring": "0x80A755",
+  "mid_spring": "0x80A755",
+  "late_spring": "0x80A755",
+  "early_summer": "0x81B844",
+  "mid_summer": "0x81B844",
+  "late_summer": "0x81B844",
+  "early_autumn": "0xD66800",
+  "mid_autumn": "0xD66800",
+  "late_autumn": "0xD66800",
+  "early_winter": "0x665026",
+  "mid_winter": "0x665026",
+  "late_winter": "0x665026"
+}

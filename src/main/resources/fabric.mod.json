@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "adventure_seasons",
+  "version": "${version}",
+
+  "name": "Adventure Seasons",
+  "description": "The Season Mod",
+  "authors": [],
+  "contact": {},
+
+  "license": "All-Rights-Reserved",
+  "icon": "assets/adventure_seasons/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": ["com.cortez.adventure_seasons.client.AdventureSeasonsDataGenerator"],
+    "client": ["com.cortez.adventure_seasons.client.AdventureSeasonsClient"],
+    "main": ["com.cortez.adventure_seasons.AdventureSeasons"]
+  },
+  "accessWidener": "adventure_seasons.accesswidener",
+  "mixins": [
+    "adventure_seasons.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

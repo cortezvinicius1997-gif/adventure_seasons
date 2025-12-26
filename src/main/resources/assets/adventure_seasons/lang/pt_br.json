@@ -1,0 +1,28 @@
+{
+  "season.adventure_seasons.spring": "Primavera",
+  "season.adventure_seasons.summer": "Verão",
+  "season.adventure_seasons.autumn": "Outono",
+  "season.adventure_seasons.winter": "Inverno",
+
+  "subseason.adventure_seasons.early": "Início",
+  "subseason.adventure_seasons.mid": "Meio",
+  "subseason.adventure_seasons.late": "Fim",
+
+  "debug.adventure_season.info": "§eEstação: §a%s - %s §7(%ds) §8| §eBioma: §f%s%s §8| §eTemp: §f%s",
+  "message.adventure_season.server": "§e§l[Estações] §fA subestação mudou para: §a%s - %s",
+
+  "command.season.current": "§eEstação atual: §a%s §7(§f%s§7)",
+  "command.season.set.subseason.success": "§aSubestação definida para: §e%s - %s",
+  "command.season.set.subseason.broadcast": "§e§l[Estações] §fA subestação foi alterada para: §a%s - %s",
+  "command.season.set.subseason.invalid": "§cSubestação inválida! Use: EARLY_SPRING, MID_SPRING, LATE_SPRING, EARLY_SUMMER, MID_SUMMER, LATE_SUMMER, EARLY_AUTUMN, MID_AUTUMN, LATE_AUTUMN, EARLY_WINTER, MID_WINTER ou LATE_WINTER",
+  "command.season.set.season.success": "§aEstação definida para: §e%s §7(Início)",
+  "command.season.set.season.broadcast": "§e§l[Estações] §fA estação foi alterada para: §a%s - Início",
+  "command.season.set.season.invalid": "§cEstação inválida! Use: SPRING, SUMMER, AUTUMN ou WINTER",
+  "command.season.next.success": "§aSubestação alterada de §e%s - %s §apara §e%s - %s",
+  "command.season.next.broadcast": "§e§l[Estações] §fA subestação mudou para: §a%s - %s",
+  "itemgroup.adventure_season": "Adventure Seasons",
+  "block.adventure_seasons.season_sensor": "Sensor de Estações",
+  "block.adventure_seasons.season_calendar": "Calendário das Estações",
+  "tooltip.adventure_seasons.season": "Estação: %s",
+  "tooltip.adventure_seasons.duration": "Dias: %s"
+}
