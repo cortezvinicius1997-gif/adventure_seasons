@@ -1,5 +1,6 @@
 package com.cortez.adventure_seasons.lib.season;
 
+import com.cortez.adventure_seasons.AdventureSeasons;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
@@ -10,8 +11,11 @@ import net.minecraft.world.World;
 public class SeasonState extends PersistentState {
 
     private static final String KEY = "adventure_seasons_state";
+    private static final int DIRTY_INTERVAL = 100; // Marcar como dirty a cada 100 ticks para performance
+
     private Season.SubSeason currentSubSeason = Season.SubSeason.EARLY_SPRING;
     private int ticksInCurrentSubSeason = 0;
+    private int ticksSinceLastSave = 0;
 
     // Instância estática (carregada do mundo)
     private static SeasonState instance;
@@ -76,7 +80,7 @@ public class SeasonState extends PersistentState {
             state.ticksInCurrentSubSeason = nbt.getInt("TicksInSeason"); // Retrocompatibilidade
         }
 
-        System.out.println("[Adventure Seasons] Subestação carregada: " + state.currentSubSeason +
+        AdventureSeasons.LOGGER.info("[Adventure Seasons] Subestação carregada: " + state.currentSubSeason +
                 " (Ticks: " + state.ticksInCurrentSubSeason + ")");
 
         return state;
@@ -120,7 +124,13 @@ public class SeasonState extends PersistentState {
 
     public void incrementTicks() {
         this.ticksInCurrentSubSeason++;
-        markDirty();
+        this.ticksSinceLastSave++;
+
+        // Otimização: só marca dirty periodicamente para evitar salvamentos excessivos
+        if (this.ticksSinceLastSave >= DIRTY_INTERVAL) {
+            this.ticksSinceLastSave = 0;
+            markDirty();
+        }
     }
 
     public void resetTicks() {
@@ -145,7 +155,7 @@ public class SeasonState extends PersistentState {
             case LATE_WINTER -> Season.SubSeason.EARLY_SPRING;
         };
         resetTicks();
-        System.out.println("[Adventure Seasons] Nova subestação: " + currentSubSeason);
+        AdventureSeasons.LOGGER.info("[Adventure Seasons] Nova subestação: " + currentSubSeason);
     }
 
     // Métodos estáticos de conveniência
@@ -167,5 +177,13 @@ public class SeasonState extends PersistentState {
         if (instance != null) {
             instance.nextSubSeason();
         }
+    }
+
+    /**
+     * Limpa a instância estática. Deve ser chamado quando o servidor para
+     * para evitar memory leaks e problemas em reloads.
+     */
+    public static void clearInstance() {
+        instance = null;
     }
 }

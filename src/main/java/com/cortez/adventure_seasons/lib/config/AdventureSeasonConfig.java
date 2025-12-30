@@ -50,7 +50,49 @@ public class AdventureSeasonConfig
     }
 
     private static void validateConfig() {
+        boolean hasChanges = false;
 
+        // Valida estação inicial
+        if (data.season_start == null || data.season_start.isEmpty()) {
+            data.season_start = "SPRING";
+            hasChanges = true;
+            AdventureSeasons.LOGGER.warn("[Adventure Seasons] season_start inválido, usando SPRING como padrão");
+        } else {
+            try {
+                Season.valueOf(data.season_start.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                data.season_start = "SPRING";
+                hasChanges = true;
+                AdventureSeasons.LOGGER.warn("[Adventure Seasons] season_start inválido, usando SPRING como padrão");
+            }
+        }
+
+        // Valida listas de biomas (não podem ser null)
+        if (data.excludedBiomes == null) {
+            data.excludedBiomes = new java.util.HashSet<>();
+            hasChanges = true;
+        }
+
+        if (data.biomeForceSnowInWinterList == null) {
+            data.biomeForceSnowInWinterList = new java.util.HashSet<>();
+            hasChanges = true;
+        }
+
+        // Valida durações das estações
+        if (data.seasonLength == null) {
+            AdventureSeasonData defaultData = AdventureSeasonData.defaultConfig();
+            data.seasonLength = defaultData.seasonLength;
+            hasChanges = true;
+            AdventureSeasons.LOGGER.warn("[Adventure Seasons] seasonLength inválido, usando valores padrão");
+        }
+
+        if (hasChanges) {
+            File configFile = FabricLoader.getInstance()
+                    .getConfigDir()
+                    .resolve(FILE_NAME)
+                    .toFile();
+            save(configFile);
+        }
     }
 
     private static void save(File file) {
@@ -134,11 +176,17 @@ public class AdventureSeasonConfig
 
     public static boolean doTemperatureChanges(Identifier biomeId)
     {
+        if (biomeId == null || data.excludedBiomes == null) {
+            return data.doTemperatureChange;
+        }
         return data.doTemperatureChange && !data.excludedBiomes.contains(biomeId.toString());
     }
 
 
     public static boolean isSnowForcedInBiome(Identifier biomeId) {
+        if (biomeId == null || data.biomeForceSnowInWinterList == null) {
+            return false;
+        }
         return data.biomeForceSnowInWinterList.contains(biomeId.toString());
     }
 

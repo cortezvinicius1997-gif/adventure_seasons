@@ -1,19 +1,22 @@
 {
-  "spring": "0x6A7039",
+  "spring": "0x758045",
   "summer": "0x6A7039",
-  "autumn": "0x6A7039",
-  "winter": "0x6A7039",
+  "autumn": "0x6B6535",
+  "winter": "0x5A5A30",
 
-  "early_spring": "0x727845",
-  "mid_spring": "0x6A7039",
-  "late_spring": "0x656835",
-  "early_summer": "0x6A7039",
+  "early_spring": "0x6E7842",
+  "mid_spring": "0x758045",
+  "late_spring": "0x707840",
+
+  "early_summer": "0x6C743C",
   "mid_summer": "0x6A7039",
-  "late_summer": "0x676A38",
-  "early_autumn": "0x6A6839",
-  "mid_autumn": "0x6A7039",
-  "late_autumn": "0x5F5F30",
-  "early_winter": "0x5A6030",
-  "mid_winter": "0x6A7039",
-  "late_winter": "0x6D7540"
+  "late_summer": "0x686C38",
+
+  "early_autumn": "0x6A6838",
+  "mid_autumn": "0x6B6535",
+  "late_autumn": "0x5F5E32",
+
+  "early_winter": "0x5C5C32",
+  "mid_winter": "0x5A5A30",
+  "late_winter": "0x606535"
 }

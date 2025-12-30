@@ -1,7 +1,6 @@
 package com.cortez.adventure_seasons.lib;
 
 import com.cortez.adventure_seasons.AdventureSeasons;
-import com.cortez.adventure_seasons.block.custom.SeasonSensor;
 import com.cortez.adventure_seasons.lib.cache.BiomeCache;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.mixed.BiomeMixed;
@@ -11,7 +10,6 @@ import com.cortez.adventure_seasons.lib.util.ReplacedMeltablesState;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -23,14 +21,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class AdventureSeason
 {
@@ -78,6 +72,9 @@ public class AdventureSeason
                 AdventureSeasons.LOGGER.info("[Adventure Seasons] Salvando estado da estação...");
                 seasonState.markDirty();
             }
+
+            // Limpa instância estática para evitar problemas em reload
+            SeasonState.clearInstance();
         });
     }
 
@@ -89,7 +86,6 @@ public class AdventureSeason
                     " dormiu. Avançando 1 dia na subestação.");
 
             if (seasonState.getTicksInCurrentSubSeason() >= ticksPerSubSeason) {
-                Season.SubSeason oldSubSeason = seasonState.getCurrentSubSeason();
                 seasonState.nextSubSeason();
                 Season.SubSeason newSubSeason = seasonState.getCurrentSubSeason();
 
@@ -99,21 +95,22 @@ public class AdventureSeason
 
                 String growthInfo = CropGrowthManager.getGrowthDescription(newSubSeason);
 
+                MinecraftServer server = player.getServer();
+                if (server != null) {
+                    server.getPlayerManager().broadcast(
+                            Text.translatable(
+                                    "message.adventure_season.server",
+                                    seasonState.getCurrentSeason().getDisplayName(),
+                                    seasonState.getCurrentSubSeason().getDisplayName()
+                            ),
+                            false
+                    );
 
-
-                player.getServer().getPlayerManager().broadcast(
-                        Text.translatable(
-                                "message.adventure_season.server",
-                                seasonState.getCurrentSeason().getDisplayName(),
-                                seasonState.getCurrentSubSeason().getDisplayName()
-                        ),
-                        false
-                );
-
-                player.getServer().getPlayerManager().broadcast(
-                        Text.literal("§e🌾 §f" + growthInfo),
-                        false
-                );
+                    server.getPlayerManager().broadcast(
+                            Text.literal("§e🌾 §f" + growthInfo),
+                            false
+                    );
+                }
             }
         }
     }
@@ -259,7 +256,7 @@ public class AdventureSeason
             return new Pair<>(hasPrecipitation, temperature + tempModifier);
         } else {
             // Ice Free Biomes
-            boolean precipitationModified = season == Season.WINTER ? true : hasPrecipitation;
+            boolean precipitationModified = season == Season.WINTER || hasPrecipitation;
             return new Pair<>(precipitationModified, temperature + tempModifier);
         }
     }
@@ -387,7 +384,7 @@ public class AdventureSeason
                     .getId(biomeEntry.value());
 
             String biomeName = biomeId != null ? biomeId.toString() : "desconhecido";
-            boolean excluded = biomeId != null && AdventureSeasonConfig.isExcludedBiome(biomeId);
+            boolean excluded = AdventureSeasonConfig.isExcludedBiome(biomeId);
             String excludedTag = excluded ? " §c[EXCLUÍDO]" : "";
 
             int ticksRemaining = ticksPerSubSeason - seasonState.getTicksInCurrentSubSeason();
