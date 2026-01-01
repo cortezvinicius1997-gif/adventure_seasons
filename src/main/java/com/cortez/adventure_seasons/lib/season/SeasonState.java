@@ -26,9 +26,18 @@ public class SeasonState extends PersistentState {
 
     // Carrega ou cria o estado da estação
     public static SeasonState getOrCreate(MinecraftServer server) {
+        // Verificação de null para evitar NullPointerException
+        if (server == null) {
+            return instance; // Retorna instância atual (pode ser null em multiplayer client)
+        }
+
         if (instance == null) {
-            PersistentStateManager manager = server.getWorld(World.OVERWORLD)
-                    .getPersistentStateManager();
+            var overworld = server.getWorld(World.OVERWORLD);
+            if (overworld == null) {
+                return null;
+            }
+
+            PersistentStateManager manager = overworld.getPersistentStateManager();
 
             instance = manager.getOrCreate(
                     new Type<>(
@@ -177,6 +186,18 @@ public class SeasonState extends PersistentState {
         if (instance != null) {
             instance.nextSubSeason();
         }
+    }
+
+    /**
+     * Atualiza a instância cliente com dados recebidos do servidor.
+     * Usado apenas no cliente para sincronização em multiplayer.
+     */
+    public static void updateFromServer(Season.SubSeason subSeason, int ticks) {
+        if (instance == null) {
+            instance = new SeasonState();
+        }
+        instance.currentSubSeason = subSeason;
+        instance.ticksInCurrentSubSeason = ticks;
     }
 
     /**

@@ -7,16 +7,17 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 
-public record SeasonSyncPayload(String subSeasonName) implements CustomPayload {
+public record SeasonSyncPayload(String subSeasonName, int ticksInSubSeason) implements CustomPayload {
     public static final Id<SeasonSyncPayload> ID = new Id<>(AdventureSeason.identifier("season_sync"));
 
     public static final PacketCodec<RegistryByteBuf, SeasonSyncPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.STRING, SeasonSyncPayload::subSeasonName,
+            PacketCodecs.INTEGER, SeasonSyncPayload::ticksInSubSeason,
             SeasonSyncPayload::new
     );
 
-    public SeasonSyncPayload(Season.SubSeason subSeason) {
-        this(subSeason.name());
+    public SeasonSyncPayload(Season.SubSeason subSeason, int ticks) {
+        this(subSeason.name(), ticks);
     }
 
     public Season.SubSeason getSubSeason() {
@@ -25,6 +26,10 @@ public record SeasonSyncPayload(String subSeasonName) implements CustomPayload {
         } catch (IllegalArgumentException e) {
             return Season.SubSeason.EARLY_SPRING;
         }
+    }
+
+    public int getTicks() {
+        return ticksInSubSeason;
     }
 
     @Override

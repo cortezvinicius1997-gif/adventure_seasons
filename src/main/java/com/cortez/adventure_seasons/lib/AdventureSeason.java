@@ -245,8 +245,11 @@ public class AdventureSeason
         Season.SubSeason subSeason = SeasonState.getSubSeason();
 
         Pair<Boolean, Float> modifiedWeather = getSeasonWeather(subSeason, biomeId, originalWeather.hasPrecipitation, originalWeather.temperature);
-        currentWeather.hasPrecipitation = modifiedWeather.getLeft();
-        currentWeather.temperature = modifiedWeather.getRight();
+
+        // Usa accessor para modificar campos final do Weather
+        com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor weatherAccessor = (com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor) (Object) currentWeather;
+        weatherAccessor.setHasPrecipitation(modifiedWeather.getLeft());
+        weatherAccessor.setTemperature(modifiedWeather.getRight());
     }
 
     private static Pair<Boolean, Float> getSeasonWeather(Season.SubSeason subSeason, Identifier biomeId, boolean hasPrecipitation, float temperature)

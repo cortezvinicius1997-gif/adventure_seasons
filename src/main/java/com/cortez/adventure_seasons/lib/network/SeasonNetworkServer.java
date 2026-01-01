@@ -11,6 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 public class SeasonNetworkServer {
     private static Season.SubSeason lastSyncedSubSeason = null;
+    private static int lastSyncedTicks = -1;
 
     public static void init() {
         // Registra o tipo de payload no servidor
@@ -18,11 +19,19 @@ public class SeasonNetworkServer {
 
         // Quando um jogador se conecta, envia a estação atual
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            Season.SubSeason currentSubSeason = SeasonState.getSubSeason();
-            AdventureSeasons.LOGGER.info("[Adventure Seasons Server] Enviando estação para jogador: " +
-                    handler.getPlayer().getName().getString() + " - " + currentSubSeason);
+            SeasonState state = SeasonState.getOrCreate(server);
+            if (state == null) {
+                AdventureSeasons.LOGGER.warn("[Adventure Seasons Server] SeasonState é null, não foi possível enviar estação para jogador");
+                return;
+            }
 
-            sender.sendPacket(new SeasonSyncPayload(currentSubSeason));
+            Season.SubSeason currentSubSeason = state.getCurrentSubSeason();
+            int ticks = state.getTicksInCurrentSubSeason();
+
+            AdventureSeasons.LOGGER.info("[Adventure Seasons Server] Enviando estação para jogador: " +
+                    handler.getPlayer().getName().getString() + " - " + currentSubSeason + " (ticks: " + ticks + ")");
+
+            sender.sendPacket(new SeasonSyncPayload(currentSubSeason, ticks));
         });
     }
 
@@ -31,15 +40,22 @@ public class SeasonNetworkServer {
      * Deve ser chamado sempre que a estação mudar no servidor.
      */
     public static void syncToAllPlayers(MinecraftServer server) {
-        Season.SubSeason currentSubSeason = SeasonState.getSubSeason();
+        SeasonState state = SeasonState.getOrCreate(server);
+        if (state == null) {
+            return;
+        }
+
+        Season.SubSeason currentSubSeason = state.getCurrentSubSeason();
+        int currentTicks = state.getTicksInCurrentSubSeason();
 
         // Só sincroniza se a estação mudou
-        if (currentSubSeason == lastSyncedSubSeason) {
+        if (currentSubSeason == lastSyncedSubSeason && currentTicks == lastSyncedTicks) {
             return;
         }
 
         lastSyncedSubSeason = currentSubSeason;
-        SeasonSyncPayload payload = new SeasonSyncPayload(currentSubSeason);
+        lastSyncedTicks = currentTicks;
+        SeasonSyncPayload payload = new SeasonSyncPayload(currentSubSeason, currentTicks);
 
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             if (ServerPlayNetworking.canSend(player, SeasonSyncPayload.ID)) {
@@ -55,6 +71,7 @@ public class SeasonNetworkServer {
      */
     public static void forceSyncToAllPlayers(MinecraftServer server) {
         lastSyncedSubSeason = null;
+        lastSyncedTicks = -1;
         syncToAllPlayers(server);
     }
 
@@ -63,6 +80,7 @@ public class SeasonNetworkServer {
      */
     public static void reset() {
         lastSyncedSubSeason = null;
+        lastSyncedTicks = -1;
     }
 }
 

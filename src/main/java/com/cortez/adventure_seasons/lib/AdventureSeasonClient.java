@@ -4,6 +4,7 @@ package com.cortez.adventure_seasons.lib;
 import com.cortez.adventure_seasons.AdventureSeasons;
 import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
 import com.cortez.adventure_seasons.lib.AdventureSeason;
+import com.cortez.adventure_seasons.lib.cache.ColorsCache;
 import com.cortez.adventure_seasons.lib.hud.SeasonCalendarTooltipRenderer;
 import com.cortez.adventure_seasons.lib.network.SeasonNetworkClient;
 import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
@@ -11,6 +12,7 @@ import com.cortez.adventure_seasons.lib.resources.GrassSeasonColors;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
@@ -38,6 +40,14 @@ public class AdventureSeasonClient
 
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GrassSeasonColors());
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new FoliageSeasonColors());
+
+        // Quando o cliente desconecta, limpa o estado sincronizado
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            AdventureSeasons.LOGGER.info("[Adventure Seasons Client] Desconectado do servidor, limpando estado de estação");
+            SeasonNetworkClient.reset();
+            ColorsCache.clear();
+            lastRenderedSeasonMap.clear();
+        });
 
         ClientTickEvents.END_WORLD_TICK.register((clientWorld) -> {
             // Usa a estação sincronizada do servidor no multiplayer

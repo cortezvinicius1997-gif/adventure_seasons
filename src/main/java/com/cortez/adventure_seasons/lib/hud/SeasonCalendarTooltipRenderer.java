@@ -1,4 +1,4 @@
-﻿package com.cortez.adventure_seasons.lib.hud;
+package com.cortez.adventure_seasons.lib.hud;
 import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.season.Season;
@@ -29,12 +29,18 @@ public class SeasonCalendarTooltipRenderer {
             Season season = subSeason.getSeason();
             // Check if we're on a remote server - if so, use client-side cached state
             MinecraftServer server = client.getServer();
-            if (server == null) {
+            // Protecao adicional: em servidores multiplayer, client.getServer() retorna null
+            // ou o servidor integrado nao esta rodando. Usa o estado em cache.
+            if (server == null || !client.isIntegratedServerRunning()) {
                 // On a multiplayer server, use cached/static season state
                 renderTooltipWithCachedState(context, client, season, subSeason);
                 return;
             }
             SeasonState seasonState = SeasonState.getOrCreate(server);
+            if (seasonState == null) {
+                renderTooltipWithCachedState(context, client, season, subSeason);
+                return;
+            }
             int currentTicks = seasonState.getTicksInCurrentSubSeason();
             Season.SubSeason currentSubSeason = seasonState.getCurrentSubSeason();
             int duration;
@@ -69,7 +75,7 @@ public class SeasonCalendarTooltipRenderer {
                 duration = AdventureSeasonConfig.getTicksPerSeason().getAutumn().getEarlyLength()
                         + AdventureSeasonConfig.getTicksPerSeason().getAutumn().getMidLength()
                         + AdventureSeasonConfig.getTicksPerSeason().getAutumn().getLateLength();
-            } else { // WINTER
+            } else {
                 if (currentSubSeason == Season.SubSeason.MID_WINTER) {
                     accumulatedTicks += AdventureSeasonConfig.getTicksPerSeason().getWinter().getEarlyLength();
                 } else if (currentSubSeason == Season.SubSeason.LATE_WINTER) {
@@ -83,18 +89,10 @@ public class SeasonCalendarTooltipRenderer {
             int current_days = accumulatedTicks / 24000;
             int total_days = duration / 24000;
             String days = current_days + "/" + total_days;
-            // Cria lista de textos para o tooltip
             List<Text> tooltipLines = new ArrayList<>();
             tooltipLines.add(Text.translatable("block.adventure_seasons.season_calendar").formatted(Formatting.BLUE));
-            tooltipLines.add(Text.translatable(
-                    "tooltip.adventure_seasons.season",
-                    season.getDisplayName()
-            ).formatted(Formatting.GRAY));
-            tooltipLines.add(Text.translatable(
-                    "tooltip.adventure_seasons.duration",
-                    days
-            ).formatted(Formatting.GRAY));
-            // Renderiza tooltip estilo vanilla
+            tooltipLines.add(Text.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).formatted(Formatting.GRAY));
+            tooltipLines.add(Text.translatable("tooltip.adventure_seasons.duration", days).formatted(Formatting.GRAY));
             int windowWidth = context.getScaledWindowWidth();
             int windowHeight = context.getScaledWindowHeight();
             int x = windowWidth / 2 + 8;
@@ -102,15 +100,10 @@ public class SeasonCalendarTooltipRenderer {
             context.drawTooltip(client.textRenderer, tooltipLines, x, y);
         });
     }
-    /**
-     * Renders a simplified tooltip when on a multiplayer server where we don't have
-     * direct access to the server's SeasonState. Uses the static cached values instead.
-     */
     private static void renderTooltipWithCachedState(net.minecraft.client.gui.DrawContext context,
                                                       MinecraftClient client,
                                                       Season season,
                                                       Season.SubSeason subSeason) {
-        // Use cached static state - may be synced via network packets
         Season.SubSeason currentSubSeason = SeasonState.getSubSeason();
         int duration;
         if (season == Season.SPRING) {
@@ -125,24 +118,16 @@ public class SeasonCalendarTooltipRenderer {
             duration = AdventureSeasonConfig.getTicksPerSeason().getAutumn().getEarlyLength()
                     + AdventureSeasonConfig.getTicksPerSeason().getAutumn().getMidLength()
                     + AdventureSeasonConfig.getTicksPerSeason().getAutumn().getLateLength();
-        } else { // WINTER
+        } else {
             duration = AdventureSeasonConfig.getTicksPerSeason().getWinter().getEarlyLength()
                     + AdventureSeasonConfig.getTicksPerSeason().getWinter().getMidLength()
                     + AdventureSeasonConfig.getTicksPerSeason().getWinter().getLateLength();
         }
         int total_days = duration / 24000;
-        // Cria lista de textos para o tooltip (without precise day count on multiplayer)
         List<Text> tooltipLines = new ArrayList<>();
         tooltipLines.add(Text.translatable("block.adventure_seasons.season_calendar").formatted(Formatting.BLUE));
-        tooltipLines.add(Text.translatable(
-                "tooltip.adventure_seasons.season",
-                season.getDisplayName()
-        ).formatted(Formatting.GRAY));
-        tooltipLines.add(Text.translatable(
-                "tooltip.adventure_seasons.total_duration",
-                total_days
-        ).formatted(Formatting.GRAY));
-        // Renderiza tooltip estilo vanilla
+        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).formatted(Formatting.GRAY));
+        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.total_duration", total_days).formatted(Formatting.GRAY));
         int windowWidth = context.getScaledWindowWidth();
         int windowHeight = context.getScaledWindowHeight();
         int x = windowWidth / 2 + 8;
