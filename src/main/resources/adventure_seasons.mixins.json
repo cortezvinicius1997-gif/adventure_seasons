@@ -22,7 +22,8 @@
   "client": [
     "BlockColorsMixin",
     "WorldRendererMixin",
-    "BiomeColorsMixin"
+    "BiomeColorsMixin",
+    "BiomeClientMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -46,4 +46,8 @@ public class ColorsCache {
         grassColors.clear();
     }
 
+    public static void clear() {
+        clearCache();
+    }
+
 }

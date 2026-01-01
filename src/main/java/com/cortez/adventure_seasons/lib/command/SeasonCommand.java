@@ -1,5 +1,6 @@
 package com.cortez.adventure_seasons.lib.command;
 
+import com.cortez.adventure_seasons.lib.network.SeasonNetworkServer;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
 import com.mojang.brigadier.CommandDispatcher;
@@ -94,6 +95,9 @@ public class SeasonCommand
                     false
             );
 
+            // Sincroniza a nova estação com todos os clientes
+            SeasonNetworkServer.forceSyncToAllPlayers(context.getSource().getServer());
+
             return 1;
         } catch (IllegalArgumentException e) {
             context.getSource().sendError(
@@ -130,6 +134,9 @@ public class SeasonCommand
                     false
             );
 
+            // Sincroniza a nova estação com todos os clientes
+            SeasonNetworkServer.forceSyncToAllPlayers(context.getSource().getServer());
+
             return 1;
         } catch (IllegalArgumentException e) {
             context.getSource().sendError(
@@ -159,6 +166,9 @@ public class SeasonCommand
                         newSubSeason.getDisplayName()),
                 false
         );
+
+        // Sincroniza a nova estação com todos os clientes
+        SeasonNetworkServer.forceSyncToAllPlayers(context.getSource().getServer());
 
         return 1;
     }

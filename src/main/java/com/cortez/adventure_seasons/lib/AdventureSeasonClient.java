@@ -5,6 +5,7 @@ import com.cortez.adventure_seasons.AdventureSeasons;
 import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
 import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.hud.SeasonCalendarTooltipRenderer;
+import com.cortez.adventure_seasons.lib.network.SeasonNetworkClient;
 import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
 import com.cortez.adventure_seasons.lib.resources.GrassSeasonColors;
 import com.cortez.adventure_seasons.lib.season.Season;
@@ -32,12 +33,20 @@ public class AdventureSeasonClient
     private static final Map<RegistryKey<World>, Season.SubSeason> lastRenderedSeasonMap = new HashMap<>();
 
     public void init(){
+        // Inicializa o sistema de networking do cliente
+        SeasonNetworkClient.init();
+
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GrassSeasonColors());
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new FoliageSeasonColors());
 
         ClientTickEvents.END_WORLD_TICK.register((clientWorld) -> {
-            if (SeasonState.getSubSeason() != lastRenderedSeasonMap.get(clientWorld.getRegistryKey())) {
-                lastRenderedSeasonMap.put(clientWorld.getRegistryKey(), SeasonState.getSubSeason());
+            // Usa a estação sincronizada do servidor no multiplayer
+            Season.SubSeason currentSubSeason = SeasonNetworkClient.isInitialized()
+                    ? SeasonNetworkClient.getSubSeason()
+                    : SeasonState.getSubSeason();
+
+            if (currentSubSeason != lastRenderedSeasonMap.get(clientWorld.getRegistryKey())) {
+                lastRenderedSeasonMap.put(clientWorld.getRegistryKey(), currentSubSeason);
                 MinecraftClient.getInstance().worldRenderer.reload();
             }
         });

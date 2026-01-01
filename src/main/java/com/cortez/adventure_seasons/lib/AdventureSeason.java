@@ -4,6 +4,7 @@ import com.cortez.adventure_seasons.AdventureSeasons;
 import com.cortez.adventure_seasons.lib.cache.BiomeCache;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.mixed.BiomeMixed;
+import com.cortez.adventure_seasons.lib.network.SeasonNetworkServer;
 import com.cortez.adventure_seasons.lib.season.*;
 import com.cortez.adventure_seasons.lib.util.PlacedMeltablesState;
 import com.cortez.adventure_seasons.lib.util.ReplacedMeltablesState;
@@ -37,6 +38,9 @@ public class AdventureSeason
     public void init(MinecraftServer server, boolean serverStopping){
         this.serverStopping = serverStopping;
 
+        // Inicializa o sistema de networking do servidor
+        SeasonNetworkServer.init();
+
         Season.SubSeason startingSubSeason = AdventureSeasonConfig.getStartingSubSeason();
 
         ticksPerSubSeason = AdventureSeasonConfig.getTicksForSubSeason(startingSubSeason);
@@ -52,29 +56,42 @@ public class AdventureSeason
 
         seasonState = SeasonState.getOrCreate(server);
 
-        if (seasonState.getCurrentSubSeason() == Season.SubSeason.EARLY_SPRING &&
-                seasonState.getTicksInCurrentSubSeason() == 0) {
+        // Só define a estação inicial se for um mundo novo (nunca teve estação salva antes)
+        // Verifica se a subestação é EARLY_SPRING E os ticks são 0 (indicando mundo novo)
+        boolean isNewWorld = seasonState.getCurrentSubSeason() == Season.SubSeason.EARLY_SPRING &&
+                seasonState.getTicksInCurrentSubSeason() == 0;
 
-            if (startingSubSeason != Season.SubSeason.EARLY_SPRING) {
-                seasonState.setCurrentSubSeason(startingSubSeason);
-                AdventureSeasons.LOGGER.info("[Adventure Seasons] Definindo subestação inicial: " + startingSubSeason);
-            }
+        if (isNewWorld && startingSubSeason != Season.SubSeason.EARLY_SPRING) {
+            seasonState.setCurrentSubSeason(startingSubSeason);
+            AdventureSeasons.LOGGER.info("[Adventure Seasons] Mundo novo detectado! Definindo subestação inicial: " + startingSubSeason);
         }
+
+        // Atualiza o ticksPerSubSeason baseado na estação atual carregada
+        ticksPerSubSeason = AdventureSeasonConfig.getTicksForSubSeason(seasonState.getCurrentSubSeason());
 
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Mod inicializado!");
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Subestação atual: " + seasonState.getCurrentSubSeason());
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Estação atual: " + seasonState.getCurrentSeason());
+        AdventureSeasons.LOGGER.info("[Adventure Seasons] Ticks na subestação: " + seasonState.getTicksInCurrentSubSeason());
 
         ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
             this.serverStopping = true;
 
             if (seasonState != null) {
-                AdventureSeasons.LOGGER.info("[Adventure Seasons] Salvando estado da estação...");
+                AdventureSeasons.LOGGER.info("[Adventure Seasons] Salvando estado da estação: " +
+                        seasonState.getCurrentSubSeason() + " (Ticks: " + seasonState.getTicksInCurrentSubSeason() + ")");
                 seasonState.markDirty();
+
+                // Força o salvamento imediato
+                ServerWorld overworld = minecraftServer.getWorld(net.minecraft.world.World.OVERWORLD);
+                if (overworld != null) {
+                    overworld.getPersistentStateManager().save();
+                }
             }
 
             // Limpa instância estática para evitar problemas em reload
             SeasonState.clearInstance();
+            SeasonNetworkServer.reset();
         });
     }
 
@@ -110,6 +127,9 @@ public class AdventureSeason
                             Text.literal("§e🌾 §f" + growthInfo),
                             false
                     );
+
+                    // Sincroniza a nova estação com todos os clientes
+                    SeasonNetworkServer.syncToAllPlayers(server);
                 }
             }
         }
@@ -189,7 +209,14 @@ public class AdventureSeason
                         false
                 );
             }
+
+            // Sincroniza a nova estação com todos os clientes
+            SeasonNetworkServer.syncToAllPlayers(server);
         }
+
+        // Sincronização periódica para garantir que todos os clientes estejam atualizados
+        SeasonNetworkServer.syncToAllPlayers(server);
+
         updatePlayerActionBar(server);
     }
 
@@ -237,27 +264,40 @@ public class AdventureSeason
 
         // Calcula modificadores baseados na subestação
         float tempModifier = getTemperatureModifierForSubSeason(subSeason, temperature);
+        float finalTemperature = temperature + tempModifier;
+
+        // No inverno, força a temperatura para garantir neve em todos os biomas
+        // Para nevar, a temperatura precisa ser <= 0.15
+        if (season == Season.WINTER) {
+            // Garante que a temperatura final seja baixa o suficiente para nevar
+            float maxTempForSnow = 0.15f;
+            if (finalTemperature > maxTempForSnow) {
+                // Se mesmo com o modificador a temperatura ainda está alta demais, força para nevar
+                finalTemperature = maxTempForSnow - 0.1f; // Um pouco abaixo do limite para garantir neve
+            }
+            // Habilita precipitação no inverno
+            return new Pair<>(true, finalTemperature);
+        }
 
         if(temperature <= -0.51) {
             // Permanently Frozen Biomes
-            return new Pair<>(hasPrecipitation, temperature + tempModifier);
+            return new Pair<>(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.15) {
             // Usually Frozen Biomes
-            float modifier = tempModifier;
             if (season == Season.SUMMER && !AdventureSeasonConfig.shouldSnowyBiomesMeltInSummer()) {
-                modifier = 0f;
+                return new Pair<>(hasPrecipitation, temperature); // Sem modificação
             }
-            return new Pair<>(hasPrecipitation, temperature + modifier);
+            return new Pair<>(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.49) {
             // Temperate Biomes
-            return new Pair<>(hasPrecipitation, temperature + tempModifier);
+            return new Pair<>(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.79) {
             // Usually Ice Free Biomes
-            return new Pair<>(hasPrecipitation, temperature + tempModifier);
+            return new Pair<>(hasPrecipitation, finalTemperature);
         } else {
             // Ice Free Biomes
             boolean precipitationModified = season == Season.WINTER || hasPrecipitation;
-            return new Pair<>(precipitationModified, temperature + tempModifier);
+            return new Pair<>(precipitationModified, finalTemperature);
         }
     }
 
@@ -316,10 +356,12 @@ public class AdventureSeason
                 }
             }
 
-            // INVERNO
-            case EARLY_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.60f, -0.65f, -0.70f, -0.48f, -0.55f);
-            case MID_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.70f, -0.75f, -0.80f, -0.56f, -0.64f);
-            case LATE_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.50f, -0.55f, -0.60f, -0.40f, -0.48f);
+            // INVERNO - Modificadores mais fortes para garantir neve em todos os biomas
+            // Para nevar, a temperatura final deve ser <= 0.15
+            // Biomas quentes (temperatura base ~0.8 a 2.0) precisam de modificadores mais fortes
+            case EARLY_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.60f, -0.65f, -0.70f, -0.80f, -0.90f);
+            case MID_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.70f, -0.75f, -0.80f, -0.90f, -1.0f);
+            case LATE_WINTER -> getModifierByTemperatureRange(baseTemperature, -0.50f, -0.55f, -0.60f, -0.70f, -0.80f);
         };
     }
 
