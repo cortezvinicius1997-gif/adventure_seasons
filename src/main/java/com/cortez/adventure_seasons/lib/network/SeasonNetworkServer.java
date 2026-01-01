@@ -63,7 +63,7 @@ public class SeasonNetworkServer {
             }
         }
 
-        AdventureSeasons.LOGGER.info("[Adventure Seasons Server] Estação sincronizada para todos os jogadores: " + currentSubSeason);
+        //AdventureSeasons.LOGGER.info("[Adventure Seasons Server] Estação sincronizada para todos os jogadores: " + currentSubSeason);
     }
 
     /**
