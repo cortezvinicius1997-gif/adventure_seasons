@@ -25,5 +25,6 @@
   "block.adventure_seasons.season_sensor": "Season Sensor",
   "block.adventure_seasons.season_calendar": "Season Calendar",
   "tooltip.adventure_seasons.season": "Season: %s",
-  "tooltip.adventure_seasons.duration": "Days: %s"
+  "tooltip.adventure_seasons.duration": "Days: %s",
+  "tooltip.adventure_seasons.total_duration": "Duration: %s days"
 }

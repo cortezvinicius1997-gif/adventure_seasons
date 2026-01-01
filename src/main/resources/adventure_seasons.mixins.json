@@ -22,6 +22,8 @@
     "SugarCaneBlockMixin"
   ],
   "client": [
+    "BiomeAccessor",
+    "BiomeWeatherAccessor",
     "BlockColorsMixin",
     "WorldRendererMixin",
     "BiomeColorsMixin",

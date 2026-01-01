@@ -242,7 +242,8 @@ public class AdventureSeason
             ((BiomeMixed) (Object) biome).setOriginalWeather(originalWeather);
         }
 
-        Season.SubSeason subSeason = SeasonState.getSubSeason();
+        // Usa dados sincronizados do servidor em multiplayer (client-side)
+        Season.SubSeason subSeason = getClientOrServerSubSeason();
 
         Pair<Boolean, Float> modifiedWeather = getSeasonWeather(subSeason, biomeId, originalWeather.hasPrecipitation, originalWeather.temperature);
 
@@ -250,6 +251,23 @@ public class AdventureSeason
         com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor weatherAccessor = (com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor) (Object) currentWeather;
         weatherAccessor.setHasPrecipitation(modifiedWeather.getLeft());
         weatherAccessor.setTemperature(modifiedWeather.getRight());
+    }
+
+    /**
+     * Obtém a subestação atual, usando dados sincronizados do servidor em multiplayer
+     */
+    private static Season.SubSeason getClientOrServerSubSeason() {
+        try {
+            // Tenta usar dados do cliente sincronizados (funciona em multiplayer)
+            Class<?> networkClientClass = Class.forName("com.cortez.adventure_seasons.lib.network.SeasonNetworkClient");
+            Boolean isInitialized = (Boolean) networkClientClass.getMethod("isInitialized").invoke(null);
+            if (isInitialized) {
+                return (Season.SubSeason) networkClientClass.getMethod("getSubSeason").invoke(null);
+            }
+        } catch (Exception ignored) {
+            // Em servidor dedicado ou se a classe não existir, usa SeasonState diretamente
+        }
+        return SeasonState.getSubSeason();
     }
 
     private static Pair<Boolean, Float> getSeasonWeather(Season.SubSeason subSeason, Identifier biomeId, boolean hasPrecipitation, float temperature)
