@@ -16,6 +16,7 @@ public class AdventureSeasonData {
     public boolean shouldSnowyBiomesMeltInSummer;
     public boolean shouldIceNearWaterMelt;
     public boolean shouldSnowReplaceVegetation;
+    public boolean isServer;
 
 
     public static AdventureSeasonData defaultConfig() {
@@ -76,6 +77,7 @@ public class AdventureSeasonData {
         data.shouldSnowyBiomesMeltInSummer = true;
         data.shouldIceNearWaterMelt = false;
         data.shouldSnowReplaceVegetation = true;
+        data.isServer = true;
 
 
 

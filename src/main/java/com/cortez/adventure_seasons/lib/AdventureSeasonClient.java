@@ -5,6 +5,7 @@ import com.cortez.adventure_seasons.AdventureSeasons;
 import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
 import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.cache.ColorsCache;
+import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.hud.SeasonCalendarTooltipRenderer;
 import com.cortez.adventure_seasons.lib.network.SeasonNetworkClient;
 import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
@@ -36,7 +37,10 @@ public class AdventureSeasonClient
 
     public void init(){
         // Inicializa o sistema de networking do cliente
-        SeasonNetworkClient.init();
+        if (AdventureSeasonConfig.isServer()) {
+            SeasonNetworkClient.init();
+        }
+
 
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GrassSeasonColors());
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new FoliageSeasonColors());

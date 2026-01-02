@@ -9,8 +9,10 @@ import com.cortez.adventure_seasons.lib.season.*;
 import com.cortez.adventure_seasons.lib.util.PlacedMeltablesState;
 import com.cortez.adventure_seasons.lib.util.ReplacedMeltablesState;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -38,8 +40,12 @@ public class AdventureSeason
     public void init(MinecraftServer server, boolean serverStopping){
         this.serverStopping = serverStopping;
 
-        // Inicializa o sistema de networking do servidor
-        SeasonNetworkServer.init();
+        if (AdventureSeasonConfig.isServer()){
+            // Inicializa o sistema de networking do servidor
+            SeasonNetworkServer.init();
+        }
+
+
 
         Season.SubSeason startingSubSeason = AdventureSeasonConfig.getStartingSubSeason();
 

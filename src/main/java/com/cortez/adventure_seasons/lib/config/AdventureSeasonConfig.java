@@ -210,4 +210,8 @@ public class AdventureSeasonConfig
     {
         return data.shouldSnowReplaceVegetation;
     }
+
+    public static boolean isServer(){
+        return data.isServer;
+    }
 }
