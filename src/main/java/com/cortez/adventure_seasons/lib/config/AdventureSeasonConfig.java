@@ -214,4 +214,14 @@ public class AdventureSeasonConfig
     public static boolean isServer(){
         return data.isServer;
     }
+
+    public static void setServer(boolean isServer){
+        data.isServer = isServer;
+        File configFile = FabricLoader.getInstance()
+                .getConfigDir()
+                .resolve(FILE_NAME)
+                .toFile();
+
+        save(configFile);
+    }
 }

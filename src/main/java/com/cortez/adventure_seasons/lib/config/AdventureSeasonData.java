@@ -77,7 +77,7 @@ public class AdventureSeasonData {
         data.shouldSnowyBiomesMeltInSummer = true;
         data.shouldIceNearWaterMelt = false;
         data.shouldSnowReplaceVegetation = true;
-        data.isServer = true;
+        data.isServer = false;
 
 
 

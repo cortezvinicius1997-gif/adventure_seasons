@@ -18,7 +18,10 @@
   "entrypoints": {
     "fabric-datagen": ["com.cortez.adventure_seasons.client.AdventureSeasonsDataGenerator"],
     "client": ["com.cortez.adventure_seasons.client.AdventureSeasonsClient"],
-    "main": ["com.cortez.adventure_seasons.AdventureSeasons"]
+    "main": ["com.cortez.adventure_seasons.AdventureSeasons"],
+    "modmenu": [
+      "com.cortez.adventure_seasons.menu.AdventureSeasonsModMenu"
+    ]
   },
   "accessWidener": "adventure_seasons.accesswidener",
   "mixins": [

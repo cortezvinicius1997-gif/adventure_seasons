@@ -33,6 +33,7 @@ public class ModRegisterSeason
 
     private static void registerModConfig(){
         AdventureSeasonConfig.load();
+
     }
 
     private static void registerBlockEntity(){

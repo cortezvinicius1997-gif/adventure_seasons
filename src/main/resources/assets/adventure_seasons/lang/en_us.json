@@ -26,5 +26,8 @@
   "block.adventure_seasons.season_calendar": "Season Calendar",
   "tooltip.adventure_seasons.season": "Season: %s",
   "tooltip.adventure_seasons.duration": "Days: %s",
-  "tooltip.adventure_seasons.total_duration": "Duration: %s days"
+  "tooltip.adventure_seasons.total_duration": "Duration: %s days",
+
+  "adventure_seasons.config_label": "Server Config",
+  "adventure_seasons.config_text": "§eWARNING!!!! §rKeep this option set to false to play on the client. This option is only for use on the server; otherwise, the game will crash when creating or joining a world."
 }

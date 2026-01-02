@@ -25,5 +25,8 @@
   "block.adventure_seasons.season_calendar": "Calendário das Estações",
   "tooltip.adventure_seasons.season": "Estação: %s",
   "tooltip.adventure_seasons.duration": "Dias: %s",
-  "tooltip.adventure_seasons.total_duration": "Duração: %s dias"
+  "tooltip.adventure_seasons.total_duration": "Duração: %s dias",
+
+  "adventure_seasons.config_label": "Configurações de Servidor",
+  "adventure_seasons.config_text": "§eATENÇÃO!!!! §rManter essa Opção como false para jogar no cliente. Essa opção é somente para ser usanda no servidor, caso o contrário o jogo crasha ao criar ou entrar em um mundo."
 }
