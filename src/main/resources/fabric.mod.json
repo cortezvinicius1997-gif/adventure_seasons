@@ -5,10 +5,10 @@
 
   "name": "Adventure Seasons",
   "description": "A realistic seasons mod that affects temperature, crop growth, foliage colors and weather. Features 4 main seasons with 12 sub-seasons.",
-  "authors": ["Cortez"],
+  "authors": ["Vinicius Cortez", "José Inácio"],
   "contact": {
-    "homepage": "https://github.com/cortez/adventure-seasons",
-    "sources": "https://github.com/cortez/adventure-seasons"
+    "homepage": "https://github.com/cortezvinicius1997-gif/adventure_seasons",
+    "sources": "https://github.com/cortezvinicius1997-gif/adventure_seasons"
   },
 
   "license": "All-Rights-Reserved",
