@@ -2,6 +2,7 @@ package com.cortez.adventure_seasons.lib.network;
 
 import com.cortez.adventure_seasons.AdventureSeasons;
 import com.cortez.adventure_seasons.lib.cache.ColorsCache;
+import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -31,8 +32,10 @@ public class SeasonNetworkClient {
                 // Atualiza também o SeasonState estático para uso em mixins
                 SeasonState.updateFromServer(newSubSeason, newTicks);
 
-                AdventureSeasons.LOGGER.info("[Adventure Seasons Client] Estação sincronizada do servidor: " + newSubSeason + " (ticks: " + newTicks + ")");
 
+                if(AdventureSeasonConfig.isDebug()) {
+                    AdventureSeasons.LOGGER.info("[Adventure Seasons Client] Estação sincronizada do servidor: " + newSubSeason + " (ticks: " + newTicks + ")");
+                }
                 // Se a estação mudou, limpa o cache de cores e força reload do world renderer
                 if (oldSubSeason != newSubSeason) {
                     ColorsCache.clear();
