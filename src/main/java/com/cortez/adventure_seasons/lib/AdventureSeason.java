@@ -12,6 +12,7 @@ import it.unimi.dsi.fastutil.longs.LongArraySet;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.RegistryKeys;
@@ -40,10 +41,7 @@ public class AdventureSeason
     public void init(MinecraftServer server, boolean serverStopping){
         this.serverStopping = serverStopping;
 
-        if (AdventureSeasonConfig.isServer()){
-            // Inicializa o sistema de networking do servidor
-            SeasonNetworkServer.init();
-        }
+        SeasonNetworkServer.init();
 
 
 

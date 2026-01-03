@@ -9,6 +9,7 @@ import com.cortez.adventure_seasons.events.StartServer;
 import com.cortez.adventure_seasons.group.AdventureSeasonsGroup;
 import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
+import com.cortez.adventure_seasons.lib.network.AdventureSeasonsNetwork;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -21,6 +22,7 @@ public class ModRegisterSeason
         registerBlocks();
         registerBlockEntity();
         registerGroup();
+        networkRegister();
     }
 
     private static void registerBlocks() {
@@ -34,6 +36,11 @@ public class ModRegisterSeason
     private static void registerModConfig(){
         AdventureSeasonConfig.load();
 
+    }
+
+    private static void networkRegister(){
+        AdventureSeasonsNetwork.registerC2SPackets();
+        AdventureSeasonsNetwork.registerS2CPackets();
     }
 
     private static void registerBlockEntity(){

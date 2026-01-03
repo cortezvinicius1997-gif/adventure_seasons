@@ -14,6 +14,7 @@ import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
@@ -37,9 +38,7 @@ public class AdventureSeasonClient
 
     public void init(){
         // Inicializa o sistema de networking do cliente
-        if (AdventureSeasonConfig.isServer()) {
-            SeasonNetworkClient.init();
-        }
+        SeasonNetworkClient.init();
 
 
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GrassSeasonColors());
@@ -51,18 +50,6 @@ public class AdventureSeasonClient
             SeasonNetworkClient.reset();
             ColorsCache.clear();
             lastRenderedSeasonMap.clear();
-        });
-
-        ClientTickEvents.END_WORLD_TICK.register((clientWorld) -> {
-            // Usa a estação sincronizada do servidor no multiplayer
-            Season.SubSeason currentSubSeason = SeasonNetworkClient.isInitialized()
-                    ? SeasonNetworkClient.getSubSeason()
-                    : SeasonState.getSubSeason();
-
-            if (currentSubSeason != lastRenderedSeasonMap.get(clientWorld.getRegistryKey())) {
-                lastRenderedSeasonMap.put(clientWorld.getRegistryKey(), currentSubSeason);
-                MinecraftClient.getInstance().worldRenderer.reload();
-            }
         });
 
         FabricLoader.getInstance().getModContainer(AdventureSeasons.MODID).ifPresent((container) -> {

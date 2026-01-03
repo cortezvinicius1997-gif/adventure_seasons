@@ -14,9 +14,6 @@ public class SeasonNetworkServer {
     private static int lastSyncedTicks = -1;
 
     public static void init() {
-        // Registra o tipo de payload no servidor
-        PayloadTypeRegistry.playS2C().register(SeasonSyncPayload.ID, SeasonSyncPayload.CODEC);
-
         // Quando um jogador se conecta, envia a estação atual
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             SeasonState state = SeasonState.getOrCreate(server);

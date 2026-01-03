@@ -15,8 +15,7 @@ public class SeasonNetworkClient {
     private static boolean initialized = false;
 
     public static void init() {
-        // Registra o tipo de payload no cliente
-        PayloadTypeRegistry.playS2C().register(SeasonSyncPayload.ID, SeasonSyncPayload.CODEC);
+
 
         // Registra o handler do pacote
         ClientPlayNetworking.registerGlobalReceiver(SeasonSyncPayload.ID, (payload, context) -> {
