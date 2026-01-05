@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": {
+      "item": "minecraft:oak_slab"
+    },
+    "I": {
+      "item": "minecraft:item_frame"
+    },
+    "P": {
+      "item": "minecraft:paper"
+    }
+  },
+  "pattern": [
+    "PP ",
+    "II ",
+    "## "
+  ],
+  "result": {
+    "count": 3,
+    "id": "adventure_seasons:season_calendar"
+  }
+}
