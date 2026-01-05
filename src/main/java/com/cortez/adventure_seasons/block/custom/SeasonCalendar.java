@@ -118,12 +118,6 @@ public class SeasonCalendar extends BlockWithEntity {
 
 
     @Override
-    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType options) {
-        super.appendTooltip(stack, context, tooltip, options);
-        tooltip.add(Text.literal("teste"));
-    }
-
-    @Override
     protected MapCodec<? extends BlockWithEntity> getCodec() {
         return CODEC;
     }
