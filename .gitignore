@@ -5,6 +5,8 @@ build/
 out/
 classes/
 
+*.keystore
+*.jks
 # eclipse
 
 *.launch
