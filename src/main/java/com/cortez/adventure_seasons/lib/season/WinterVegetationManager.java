@@ -2,74 +2,70 @@ package com.cortez.adventure_seasons.lib.season;
 
 import com.cortez.adventure_seasons.lib.cache.BiomeCache;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.TallPlantBlock;
-import net.minecraft.block.enums.DoubleBlockHalf;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.WorldChunk;
-
-import java.util.Random;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 public class WinterVegetationManager {
 
-    private static final Random RANDOM = new Random();
+    private static final RandomSource RANDOM = RandomSource.create();
     private static int tickCounter = 0;
 
     // Configurações de remoção de vegetação
-    private static final int CHECK_INTERVAL = 5; // Verifica a cada 0.25 segundos
-    private static final int CHUNKS_PER_TICK = 8; // Quantos chunks processar por vez
-    private static final int BLOCKS_PER_CHUNK = 32; // Quantos blocos verificar por chunk
-    private static final int SKY_CHECK_HEIGHT = 5; // Quantos blocos verificar acima para céu aberto
+    private static final int CHECK_INTERVAL = 5;
+    private static final int CHUNKS_PER_TICK = 8;
+    private static final int BLOCKS_PER_CHUNK = 32;
+    private static final int SKY_CHECK_HEIGHT = 5;
 
     /**
      * Chamado a cada tick do servidor para remover vegetação no inverno
      */
-    public static void tick(ServerWorld world, Season currentSeason) {
+    public static void tick(ServerLevel world, Season currentSeason) {
 
-        Biome biome = world.getBiome(world.getSpawnPos()).value();
-        Identifier id = BiomeCache.get((Biome)(Object)biome);
+        Holder<Biome> biomeHolder = world.getBiome(world.getRespawnData().pos());
+        Biome biome = biomeHolder.value();
+        Identifier id = BiomeCache.get(biome);
 
         if (id != null && AdventureSeasonConfig.isExcludedBiome(id)) {
             return;
         }
 
-        // Só processa se for inverno
         if (currentSeason != Season.WINTER) {
             return;
         }
 
         tickCounter++;
 
-        // Verifica apenas a cada intervalo configurado
         if (tickCounter < CHECK_INTERVAL) {
             return;
         }
 
         tickCounter = 0;
 
-        // Processa chunks ao redor dos jogadores
-        world.getPlayers().forEach(player -> {
-            ChunkPos playerChunkPos = new ChunkPos(player.getBlockPos());
+        world.players().forEach(player -> {
+            ChunkPos playerChunkPos = ChunkPos.containing(player.blockPosition());
 
-            // Processa alguns chunks ao redor do jogador
             for (int i = 0; i < CHUNKS_PER_TICK; i++) {
-                int offsetX = RANDOM.nextInt(9) - 4; // -4 a +4
+                int offsetX = RANDOM.nextInt(9) - 4;
                 int offsetZ = RANDOM.nextInt(9) - 4;
 
                 ChunkPos targetChunk = new ChunkPos(
-                        playerChunkPos.x + offsetX,
-                        playerChunkPos.z + offsetZ
+                        playerChunkPos.x() + offsetX,
+                        playerChunkPos.z() + offsetZ
                 );
 
-                WorldChunk chunk = world.getChunk(targetChunk.x, targetChunk.z);
+                LevelChunk chunk = world.getChunk(targetChunk.x(), targetChunk.z());
                 if (chunk != null) {
                     processChunk(world, chunk);
                 }
@@ -80,24 +76,24 @@ public class WinterVegetationManager {
     /**
      * Processa um chunk para remover vegetação
      */
-    private static void processChunk(ServerWorld world, WorldChunk chunk) {
+    private static void processChunk(ServerLevel world, LevelChunk chunk) {
         ChunkPos chunkPos = chunk.getPos();
-        int chunkX = chunkPos.getStartX();
-        int chunkZ = chunkPos.getStartZ();
+        int chunkX = chunkPos.getMiddleBlockX();
+        int chunkZ = chunkPos.getMiddleBlockZ();
 
-        // Verifica blocos aleatórios no chunk
         for (int i = 0; i < BLOCKS_PER_CHUNK; i++) {
             int x = chunkX + RANDOM.nextInt(16);
             int z = chunkZ + RANDOM.nextInt(16);
 
-            // Pega a altura mais alta com bloco sólido
-            BlockPos topPos = world.getTopPosition(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING, new BlockPos(x, 0, z));
+            BlockPos topPos = new BlockPos(
+                    x,
+                    world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z),
+                    z
+            );
 
-            // Verifica alguns blocos acima e abaixo
             for (int yOffset = -2; yOffset <= 2; yOffset++) {
-                BlockPos checkPos = topPos.add(0, yOffset, 0);
+                BlockPos checkPos = topPos.offset(0, yOffset, 0);
 
-                // Verifica se deve remover vegetação nesta posição
                 if (shouldRemoveVegetationAt(world, checkPos)) {
                     removeVegetation(world, checkPos);
                 }
@@ -108,14 +104,12 @@ public class WinterVegetationManager {
     /**
      * Verifica se deve remover vegetação nesta posição
      */
-    private static boolean shouldRemoveVegetationAt(ServerWorld world, BlockPos pos) {
-        // Verifica o bioma
-        RegistryEntry<Biome> biomeEntry = world.getBiome(pos);
-        Identifier biomeId = world.getRegistryManager()
-                .get(RegistryKeys.BIOME)
-                .getId(biomeEntry.value());
+    private static boolean shouldRemoveVegetationAt(ServerLevel world, BlockPos pos) {
+        Holder<Biome> biomeEntry = world.getBiome(pos);
+        var biomeId = biomeEntry.unwrapKey()
+                .map(net.minecraft.resources.ResourceKey::identifier)
+                .orElse(null);
 
-        // Não remove em biomas excluídos
         if (biomeId != null && AdventureSeasonConfig.isExcludedBiome(biomeId)) {
             return false;
         }
@@ -123,12 +117,10 @@ public class WinterVegetationManager {
         BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
 
-        // Verifica se é vegetação que pode morrer
         if (!isVegetation(block)) {
             return false;
         }
 
-        // Verifica se está exposto ao céu (ar livre)
         if (!isExposedToSky(world, pos)) {
             return false;
         }
@@ -139,26 +131,22 @@ public class WinterVegetationManager {
     /**
      * Verifica se o bloco está exposto ao céu (não está protegido por teto)
      */
-    private static boolean isExposedToSky(ServerWorld world, BlockPos pos) {
-        // Verifica se há blocos sólidos acima (teto/proteção)
+    private static boolean isExposedToSky(ServerLevel world, BlockPos pos) {
         for (int y = 1; y <= SKY_CHECK_HEIGHT; y++) {
-            BlockPos checkPos = pos.up(y);
+            BlockPos checkPos = pos.above(y);
             BlockState state = world.getBlockState(checkPos);
 
-            // Se encontrar um bloco sólido/opaco, está protegido
-            if (state.isOpaqueFullCube(world, checkPos) ||
-                    state.isSolidBlock(world, checkPos)) {
+            if (state.isSolid() ||
+                    state.canOcclude()) {
                 return false;
             }
 
-            // Verifica blocos específicos que protegem (vidro, folhas, etc)
             Block block = state.getBlock();
             if (isProtectiveBlock(block)) {
                 return false;
             }
         }
 
-        // Se não encontrou nenhum bloco protetor, está exposto
         return true;
     }
 
@@ -166,24 +154,23 @@ public class WinterVegetationManager {
      * Verifica se o bloco é considerado protetor (teto/cobertura)
      */
     private static boolean isProtectiveBlock(Block block) {
-        // Blocos que protegem plantas do inverno
         return block == Blocks.GLASS ||
-                block == Blocks.WHITE_STAINED_GLASS ||
-                block == Blocks.ORANGE_STAINED_GLASS ||
-                block == Blocks.MAGENTA_STAINED_GLASS ||
-                block == Blocks.LIGHT_BLUE_STAINED_GLASS ||
-                block == Blocks.YELLOW_STAINED_GLASS ||
-                block == Blocks.LIME_STAINED_GLASS ||
-                block == Blocks.PINK_STAINED_GLASS ||
-                block == Blocks.GRAY_STAINED_GLASS ||
-                block == Blocks.LIGHT_GRAY_STAINED_GLASS ||
-                block == Blocks.CYAN_STAINED_GLASS ||
-                block == Blocks.PURPLE_STAINED_GLASS ||
-                block == Blocks.BLUE_STAINED_GLASS ||
-                block == Blocks.BROWN_STAINED_GLASS ||
-                block == Blocks.GREEN_STAINED_GLASS ||
-                block == Blocks.RED_STAINED_GLASS ||
-                block == Blocks.BLACK_STAINED_GLASS ||
+                block == Blocks.STAINED_GLASS.white() ||
+                block == Blocks.STAINED_GLASS.orange() ||
+                block == Blocks.STAINED_GLASS.magenta() ||
+                block == Blocks.STAINED_GLASS.lightBlue() ||
+                block == Blocks.STAINED_GLASS.yellow() ||
+                block == Blocks.STAINED_GLASS.lime() ||
+                block == Blocks.STAINED_GLASS.pink() ||
+                block == Blocks.STAINED_GLASS.gray() ||
+                block == Blocks.STAINED_GLASS.lightGray() ||
+                block == Blocks.STAINED_GLASS.cyan() ||
+                block == Blocks.STAINED_GLASS.purple() ||
+                block == Blocks.STAINED_GLASS.blue() ||
+                block == Blocks.STAINED_GLASS.brown() ||
+                block == Blocks.STAINED_GLASS.green() ||
+                block == Blocks.STAINED_GLASS.red() ||
+                block == Blocks.STAINED_GLASS.black() ||
                 block == Blocks.GLASS_PANE ||
                 block == Blocks.TINTED_GLASS ||
                 block == Blocks.OAK_LEAVES ||
@@ -202,7 +189,6 @@ public class WinterVegetationManager {
      * Verifica se o bloco é vegetação que deve ser removida
      */
     private static boolean isVegetation(Block block) {
-        // Grama e variantes
         if (block == Blocks.SHORT_GRASS ||
                 block == Blocks.TALL_GRASS ||
                 block == Blocks.FERN ||
@@ -210,7 +196,6 @@ public class WinterVegetationManager {
             return true;
         }
 
-        // Flores pequenas
         if (block == Blocks.DANDELION ||
                 block == Blocks.POPPY ||
                 block == Blocks.BLUE_ORCHID ||
@@ -229,7 +214,6 @@ public class WinterVegetationManager {
             return true;
         }
 
-        // Flores grandes
         if (block == Blocks.SUNFLOWER ||
                 block == Blocks.LILAC ||
                 block == Blocks.ROSE_BUSH ||
@@ -237,7 +221,6 @@ public class WinterVegetationManager {
             return true;
         }
 
-        // Plantações (Crops)
         if (block == Blocks.WHEAT ||
                 block == Blocks.CARROTS ||
                 block == Blocks.POTATOES ||
@@ -247,7 +230,6 @@ public class WinterVegetationManager {
             return true;
         }
 
-        // Outras plantas
         if (block == Blocks.SWEET_BERRY_BUSH ||
                 block == Blocks.DEAD_BUSH ||
                 block == Blocks.NETHER_WART ||
@@ -255,7 +237,6 @@ public class WinterVegetationManager {
             return true;
         }
 
-        // Plantas aquáticas e do nether que também podem morrer
         if (block == Blocks.SEAGRASS ||
                 block == Blocks.TALL_SEAGRASS ||
                 block == Blocks.KELP ||
@@ -272,11 +253,10 @@ public class WinterVegetationManager {
     /**
      * Remove vegetação na posição
      */
-    private static void removeVegetation(ServerWorld world, BlockPos pos) {
+    private static void removeVegetation(ServerLevel world, BlockPos pos) {
         BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
 
-        // Para plantas altas (2 blocos), remove ambas as partes
         if (block == Blocks.TALL_GRASS ||
                 block == Blocks.LARGE_FERN ||
                 block == Blocks.SUNFLOWER ||
@@ -286,22 +266,18 @@ public class WinterVegetationManager {
                 block == Blocks.TALL_SEAGRASS ||
                 block == Blocks.PITCHER_PLANT) {
 
-            // Verifica se é a parte de cima ou de baixo
-            if (state.contains(TallPlantBlock.HALF)) {
-                DoubleBlockHalf half = state.get(TallPlantBlock.HALF);
+            if (state.hasProperty(DoublePlantBlock.HALF)) {
+                DoubleBlockHalf half = state.getValue(DoublePlantBlock.HALF);
 
                 if (half == DoubleBlockHalf.LOWER) {
-                    // Remove a parte de baixo e a de cima
                     world.removeBlock(pos, false);
-                    world.removeBlock(pos.up(), false);
+                    world.removeBlock(pos.above(), false);
                 } else {
-                    // Remove a parte de cima e a de baixo
                     world.removeBlock(pos, false);
-                    world.removeBlock(pos.down(), false);
+                    world.removeBlock(pos.below(), false);
                 }
             }
         } else {
-            // Remove plantas simples
             world.removeBlock(pos, false);
         }
     }
@@ -309,13 +285,13 @@ public class WinterVegetationManager {
     /**
      * Força a remoção de vegetação em uma área (útil para comandos)
      */
-    public static int forceRemoveInArea(ServerWorld world, BlockPos center, int radius) {
+    public static int forceRemoveInArea(ServerLevel world, BlockPos center, int radius) {
         int removed = 0;
 
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 for (int y = -radius; y <= radius; y++) {
-                    BlockPos pos = center.add(x, y, z);
+                    BlockPos pos = center.offset(x, y, z);
 
                     if (shouldRemoveVegetationAt(world, pos)) {
                         removeVegetation(world, pos);

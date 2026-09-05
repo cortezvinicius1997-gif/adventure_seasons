@@ -2,17 +2,17 @@ package com.cortez.adventure_seasons.lib.network;
 
 import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.season.Season;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record SeasonSyncPayload(String subSeasonName, int ticksInSubSeason) implements CustomPayload {
-    public static final Id<SeasonSyncPayload> ID = new Id<>(AdventureSeason.identifier("season_sync"));
+public record SeasonSyncPayload(String subSeasonName, int ticksInSubSeason) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<SeasonSyncPayload> ID = new CustomPacketPayload.Type<>(AdventureSeason.identifier("season_sync"));
 
-    public static final PacketCodec<RegistryByteBuf, SeasonSyncPayload> CODEC = PacketCodec.tuple(
-            PacketCodecs.STRING, SeasonSyncPayload::subSeasonName,
-            PacketCodecs.INTEGER, SeasonSyncPayload::ticksInSubSeason,
+    public static final StreamCodec<FriendlyByteBuf, SeasonSyncPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8, SeasonSyncPayload::subSeasonName,
+            ByteBufCodecs.INT, SeasonSyncPayload::ticksInSubSeason,
             SeasonSyncPayload::new
     );
 
@@ -33,8 +33,7 @@ public record SeasonSyncPayload(String subSeasonName, int ticksInSubSeason) impl
     }
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }
-

@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "adventure_seasons:block/season_sensor_spring"
+  }
+}

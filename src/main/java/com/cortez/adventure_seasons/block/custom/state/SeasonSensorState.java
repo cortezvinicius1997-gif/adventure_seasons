@@ -1,8 +1,8 @@
 package com.cortez.adventure_seasons.block.custom.state;
 
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.StringRepresentable;
 
-public enum SeasonSensorState implements StringIdentifiable
+public enum SeasonSensorState implements StringRepresentable
 {
     SPRING("spring"),
     SUMMER("summer"),
@@ -16,7 +16,7 @@ public enum SeasonSensorState implements StringIdentifiable
     }
 
     @Override
-    public String asString() {
+    public String getSerializedName() {
         return id;
     }
 

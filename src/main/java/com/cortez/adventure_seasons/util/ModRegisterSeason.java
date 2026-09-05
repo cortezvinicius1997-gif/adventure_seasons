@@ -11,11 +11,9 @@ import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.network.AdventureSeasonsNetwork;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.loader.api.FabricLoader;
 
-public class ModRegisterSeason
-{
-    public static void register(){
+public class ModRegisterSeason {
+    public static void register() {
         registerEvents();
         registerModConfig();
         registerCommands();
@@ -29,37 +27,31 @@ public class ModRegisterSeason
         AdventureSeasonBlocks.registerModBlocks();
     }
 
-    private static void registerGroup(){
+    private static void registerGroup() {
         AdventureSeasonsGroup.registerItemGroups();
     }
 
-    private static void registerModConfig(){
+    private static void registerModConfig() {
         AdventureSeasonConfig.load();
-
     }
 
-    private static void networkRegister(){
+    private static void networkRegister() {
         AdventureSeasonsNetwork.registerC2SPackets();
         AdventureSeasonsNetwork.registerS2CPackets();
     }
 
-    private static void registerBlockEntity(){
+    private static void registerBlockEntity() {
         SeasonsBlockEntities.registerBlockEntities();
     }
 
-    private static void registerEvents(){
-        if (FabricLoader.getInstance().isModLoaded("adventuremod")){
-            AdventureSeasons.LOGGER.info("Carregado Via Adventure Mod");
-            return;
-        }else{
-            AdventureSeasons.LOGGER.info("Iniciado Mod Seasons");
-            AdventureSeason adventureSeason = new AdventureSeason();
-            AdventureSeason season = StartServer.register(adventureSeason);
-            ServerTickEvents.START_SERVER_TICK.register(new PlayerTickHandler(season));
-        }
+    private static void registerEvents() {
+        AdventureSeasons.LOGGER.info("Started Seasons Mod");
+        AdventureSeason adventureSeason = new AdventureSeason();
+        AdventureSeason season = StartServer.register(adventureSeason);
+        ServerTickEvents.START_SERVER_TICK.register(new PlayerTickHandler(season));
     }
 
-    public static void registerCommands(){
+    public static void registerCommands() {
         SeasonCommands.registerCommand();
     }
 }

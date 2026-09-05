@@ -8,26 +8,27 @@ import com.cortez.adventure_seasons.lib.network.SeasonNetworkServer;
 import com.cortez.adventure_seasons.lib.season.*;
 import com.cortez.adventure_seasons.lib.util.PlacedMeltablesState;
 import com.cortez.adventure_seasons.lib.util.ReplacedMeltablesState;
+import com.cortez.adventure_seasons.lib.util.BiomeAccessor;
+import com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
-import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.BiomeKeys;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.saveddata.WeatherData;
+
+import java.util.Map;
 
 
 public class AdventureSeason
@@ -36,7 +37,10 @@ public class AdventureSeason
     private SeasonState seasonState;
     private int ticksPerSubSeason;
     private boolean serverStopping = false;
-    private static final TagKey<Biome> IGNORED_CATEGORIES_TAG = TagKey.of(RegistryKeys.BIOME, AdventureSeason.identifier("ignored"));
+    // Guarda o último dayTime conhecido do overworld para sincronizar o avanço
+    // da season com o relógio real do servidor (incluindo saltos causados pelo sono).
+    private long lastKnownDayTime = -1L;
+    private static final TagKey<Biome> IGNORED_CATEGORIES_TAG = TagKey.create(Registries.BIOME, AdventureSeason.identifier("ignored"));
 
     public void init(MinecraftServer server, boolean serverStopping){
         this.serverStopping = serverStopping;
@@ -55,8 +59,12 @@ public class AdventureSeason
 
         EntitySleepEvents.STOP_SLEEPING.register(this::onPlayerWakeUp);
 
-        ServerWorld world = server.getOverworld();
+        ServerLevel world = server.overworld();
         BiomeCache.init(world);
+
+        // Sincroniza o marcador de tempo com o dayTime atual do overworld,
+        // para que o próximo tick não interprete o tempo já passado como um salto.
+        lastKnownDayTime = world.getOverworldClockTime();
 
         seasonState = SeasonState.getOrCreate(server);
 
@@ -84,12 +92,12 @@ public class AdventureSeason
             if (seasonState != null) {
                 AdventureSeasons.LOGGER.info("[Adventure Seasons] Salvando estado da estação: " +
                         seasonState.getCurrentSubSeason() + " (Ticks: " + seasonState.getTicksInCurrentSubSeason() + ")");
-                seasonState.markDirty();
+                seasonState.setDirty();
 
                 // Força o salvamento imediato
-                ServerWorld overworld = minecraftServer.getWorld(net.minecraft.world.World.OVERWORLD);
+                ServerLevel overworld = minecraftServer.getLevel(Level.OVERWORLD);
                 if (overworld != null) {
-                    overworld.getPersistentStateManager().save();
+                    overworld.getDataStorage().saveAndJoin();
                 }
             }
 
@@ -100,42 +108,14 @@ public class AdventureSeason
     }
 
     private void onPlayerWakeUp(LivingEntity entity, BlockPos blockPos) {
-        if (entity instanceof ServerPlayerEntity player && seasonState != null) {
-            seasonState.addTicks(24000);
-
+        // Não mexemos mais no seasonState diretamente aqui: quando o jogador dorme,
+        // o vanilla avança o dayTime do overworld direto para a manhã. Essa mudança
+        // de dayTime é detectada e aplicada de forma unificada no próximo tick()
+        // (mesmo mecanismo usado para a passagem normal do tempo), então a season
+        // fica sempre sincronizada com o horário real do servidor sem contagem duplicada.
+        if (entity instanceof ServerPlayer player) {
             AdventureSeasons.LOGGER.info("[Adventure Seasons] Jogador " + player.getName().getString() +
-                    " dormiu. Avançando 1 dia na subestação.");
-
-            if (seasonState.getTicksInCurrentSubSeason() >= ticksPerSubSeason) {
-                seasonState.nextSubSeason();
-                Season.SubSeason newSubSeason = seasonState.getCurrentSubSeason();
-
-                ticksPerSubSeason = AdventureSeasonConfig.getTicksForSubSeason(newSubSeason);
-
-                CropGrowthManager.logSeasonChange(newSubSeason);
-
-                String growthInfo = CropGrowthManager.getGrowthDescription(newSubSeason);
-
-                MinecraftServer server = player.getServer();
-                if (server != null) {
-                    server.getPlayerManager().broadcast(
-                            Text.translatable(
-                                    "message.adventure_season.server",
-                                    seasonState.getCurrentSeason().getDisplayName(),
-                                    seasonState.getCurrentSubSeason().getDisplayName()
-                            ),
-                            false
-                    );
-
-                    server.getPlayerManager().broadcast(
-                            Text.literal("§e🌾 §f" + growthInfo),
-                            false
-                    );
-
-                    // Sincroniza a nova estação com todos os clientes
-                    SeasonNetworkServer.syncToAllPlayers(server);
-                }
-            }
+                    " dormiu. O avanço da subestação será sincronizado com o novo horário do servidor.");
         }
     }
 
@@ -146,9 +126,32 @@ public class AdventureSeason
             return;
         }
 
-        seasonState.incrementTicks();
+        ServerLevel world = server.overworld();
 
-        ServerWorld world = server.getOverworld();
+        // Sincroniza o avanço da season com o dayTime real do overworld.
+        // Em ticks normais, o delta é 1 (mesmo comportamento de antes).
+        // Quando alguém dorme, o vanilla pula o dayTime direto para a manhã,
+        // então o delta reflete exatamente esse salto — sem precisar de um
+        // valor fixo de 24000 tratado separadamente no evento de dormir.
+        long currentDayTime = world.getOverworldClockTime();
+
+        if (lastKnownDayTime < 0) {
+            lastKnownDayTime = currentDayTime;
+        }
+
+        long elapsedDayTime = currentDayTime - lastKnownDayTime;
+
+        // Proteção contra retrocesso de tempo (ex.: comando /time set para trás)
+        // para não fazer a season "andar para trás".
+        if (elapsedDayTime < 0) {
+            elapsedDayTime = 0;
+        }
+
+        lastKnownDayTime = currentDayTime;
+
+        if (elapsedDayTime > 0) {
+            seasonState.addTicks((int) Math.min(elapsedDayTime, Integer.MAX_VALUE));
+        }
 
         Season.SubSeason subSeason = seasonState.getCurrentSubSeason();
 
@@ -162,9 +165,17 @@ public class AdventureSeason
         if (AdventureSeasonConfig.isWinterRain()) {
             if (seasonState.getCurrentSeason() == Season.WINTER) {
                 if (subSeason == Season.SubSeason.MID_WINTER) {
-                    world.setWeather(0, Integer.MAX_VALUE, true, false);
+                    WeatherData weatherData = world.getWeatherData();
+                    weatherData.setClearWeatherTime(0);
+                    weatherData.setRainTime(Integer.MAX_VALUE);
+                    weatherData.setRaining(true);
+                    weatherData.setThundering(false);
                 }else if(subSeason == Season.SubSeason.LATE_WINTER){
-                    world.setWeather(0, 0, false, false);
+                    WeatherData weatherData = world.getWeatherData();
+                    weatherData.setClearWeatherTime(0);
+                    weatherData.setRainTime(0);
+                    weatherData.setRaining(false);
+                    weatherData.setThundering(false);
                 }
 
             }
@@ -182,8 +193,8 @@ public class AdventureSeason
 
             Season.SubSeason newSubSeason = seasonState.getCurrentSubSeason();
 
-            server.getPlayerManager().broadcast(
-                    Text.translatable(
+            server.getPlayerList().broadcastSystemMessage(
+                    Component.translatable(
                             "message.adventure_season.server",
                             seasonState.getCurrentSeason().getDisplayName(),
                             seasonState.getCurrentSubSeason().getDisplayName()
@@ -199,17 +210,17 @@ public class AdventureSeason
             CropGrowthManager.logSeasonChange(newSubSeason);
 
             String growthInfo = CropGrowthManager.getGrowthDescription(newSubSeason);
-            server.getPlayerManager().broadcast(
-                    Text.literal("§e🌾 §f" + growthInfo),
+            server.getPlayerList().broadcastSystemMessage(
+                    Component.literal("§e🌾 §f" + growthInfo),
                     false
             );
 
             updateAllSeasonSensors(world);
 
             // Notifica jogadores sobre o derretimento natural
-            if (seasonState.getCurrentSeason() != Season.WINTER) {
-                server.getPlayerManager().broadcast(
-                        Text.literal("§b❄ §fA neve começará a derreter naturalmente..."),
+            if (seasonState.getCurrentSeason() != Season.WINTER && seasonState.getCurrentSubSeason() == Season.SubSeason.EARLY_SPRING) {
+                server.getPlayerList().broadcastSystemMessage(
+                        Component.literal("§b❄ §fA neve começará a derreter naturalmente..."),
                         false
                 );
             }
@@ -226,35 +237,39 @@ public class AdventureSeason
 
 
 
-    public static void injectBiomeTemperature(RegistryEntry<Biome> entry, World world)
+    public static void injectBiomeTemperature(Holder<Biome> entry, Level world)
     {
-        if(entry.isIn(IGNORED_CATEGORIES_TAG))
+        if(entry.is(IGNORED_CATEGORIES_TAG))
             return;
 
         Biome biome = entry.value();
-        Identifier biomeId = entry.getKey().orElse(BiomeKeys.PLAINS).getValue();
+        Identifier biomeId = entry.unwrapKey().orElse(Biomes.PLAINS).identifier();
 
         if (AdventureSeasonConfig.isExcludedBiome(biomeId))
             return;
 
         if(!AdventureSeasonConfig.doTemperatureChanges(biomeId)) return;
 
-        Biome.Weather currentWeather = biome.weather;
-        Biome.Weather originalWeather = ((BiomeMixed) (Object) biome).getOriginalWeather();
-        if (originalWeather == null) {
-            originalWeather = new Biome.Weather(currentWeather.hasPrecipitation(), currentWeather.temperature(), currentWeather.temperatureModifier(), currentWeather.downfall());
-            ((BiomeMixed) (Object) biome).setOriginalWeather(originalWeather);
+        var currentWeather = BiomeAccessor.getClimateSettings(biome);
+        BiomeMixed mixed = (BiomeMixed) (Object) biome;
+
+        BiomeWeatherAccessor weatherAccessor = (BiomeWeatherAccessor) (Object) currentWeather;
+
+        if (mixed.getOriginalTemperatureModifier() == null) {
+            mixed.setOriginalTemperature(weatherAccessor.getTemperature());
+            mixed.setOriginalHasPrecipitation(weatherAccessor.getHasPrecipitation());
+            mixed.setOriginalDownfall(weatherAccessor.getDownfall());
+            mixed.setOriginalTemperatureModifier(weatherAccessor.getTemperatureModifier());
         }
 
         // Usa dados sincronizados do servidor em multiplayer (client-side)
         Season.SubSeason subSeason = getClientOrServerSubSeason();
 
-        Pair<Boolean, Float> modifiedWeather = getSeasonWeather(subSeason, biomeId, originalWeather.hasPrecipitation, originalWeather.temperature);
+        Map.Entry<Boolean, Float> modifiedWeather = getSeasonWeather(subSeason, biomeId, mixed.getOriginalHasPrecipitation(), mixed.getOriginalTemperature());
 
-        // Usa accessor para modificar campos final do Weather
-        com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor weatherAccessor = (com.cortez.adventure_seasons.mixin.BiomeWeatherAccessor) (Object) currentWeather;
-        weatherAccessor.setHasPrecipitation(modifiedWeather.getLeft());
-        weatherAccessor.setTemperature(modifiedWeather.getRight());
+        // Usa accessor para modificar campos final do ClimateSettings
+        weatherAccessor.setHasPrecipitation(modifiedWeather.getKey());
+        weatherAccessor.setTemperature(modifiedWeather.getValue());
     }
 
     /**
@@ -274,17 +289,17 @@ public class AdventureSeason
         return SeasonState.getSubSeason();
     }
 
-    private static Pair<Boolean, Float> getSeasonWeather(Season.SubSeason subSeason, Identifier biomeId, boolean hasPrecipitation, float temperature)
+    private static Map.Entry<Boolean, Float> getSeasonWeather(Season.SubSeason subSeason, Identifier biomeId, boolean hasPrecipitation, float temperature)
     {
         Season season = subSeason.getSeason();
 
         if(!AdventureSeasonConfig.doTemperatureChanges(biomeId)) {
-            return new Pair<>(hasPrecipitation, temperature);
+            return Map.entry(hasPrecipitation, temperature);
         }
 
         if(AdventureSeasonConfig.isSnowForcedInBiome(biomeId) && season == Season.WINTER) {
             float tempModifier = getTemperatureModifierForSubSeason(subSeason, temperature);
-            return new Pair<>(hasPrecipitation, tempModifier);
+            return Map.entry(hasPrecipitation, tempModifier);
         }
 
         // Calcula modificadores baseados na subestação
@@ -301,28 +316,28 @@ public class AdventureSeason
                 finalTemperature = maxTempForSnow - 0.1f; // Um pouco abaixo do limite para garantir neve
             }
             // Habilita precipitação no inverno
-            return new Pair<>(true, finalTemperature);
+            return Map.entry(true, finalTemperature);
         }
 
         if(temperature <= -0.51) {
             // Permanently Frozen Biomes
-            return new Pair<>(hasPrecipitation, finalTemperature);
+            return Map.entry(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.15) {
             // Usually Frozen Biomes
             if (season == Season.SUMMER && !AdventureSeasonConfig.shouldSnowyBiomesMeltInSummer()) {
-                return new Pair<>(hasPrecipitation, temperature); // Sem modificação
+                return Map.entry(hasPrecipitation, temperature); // Sem modificação
             }
-            return new Pair<>(hasPrecipitation, finalTemperature);
+            return Map.entry(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.49) {
             // Temperate Biomes
-            return new Pair<>(hasPrecipitation, finalTemperature);
+            return Map.entry(hasPrecipitation, finalTemperature);
         } else if(temperature <= 0.79) {
             // Usually Ice Free Biomes
-            return new Pair<>(hasPrecipitation, finalTemperature);
+            return Map.entry(hasPrecipitation, finalTemperature);
         } else {
             // Ice Free Biomes
             boolean precipitationModified = season == Season.WINTER || hasPrecipitation;
-            return new Pair<>(precipitationModified, finalTemperature);
+            return Map.entry(precipitationModified, finalTemperature);
         }
     }
 
@@ -410,27 +425,27 @@ public class AdventureSeason
         }
     }
 
-    private void updateAllSeasonSensors(ServerWorld world) {
+    private void updateAllSeasonSensors(ServerLevel world) {
 
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Season Sensors atualizados para estação: " +
                 seasonState.getCurrentSeason());
     }
 
 
-    private void updateAllSeasonSensorsOptimized(ServerWorld world) {
+    private void updateAllSeasonSensorsOptimized(ServerLevel world) {
         // Itera sobre jogadores e força atualização de redstone na área
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            BlockPos playerPos = player.getBlockPos();
+        for (ServerPlayer player : world.players()) {
+            BlockPos playerPos = player.blockPosition();
 
             // Atualiza em um raio menor mas com saltos maiores
             for (int x = -64; x <= 64; x += 8) {
                 for (int z = -64; z <= 64; z += 8) {
-                    for (int y = world.getBottomY(); y < world.getTopY(); y += 8) {
-                        BlockPos checkPos = playerPos.add(x, y, z);
+                    for (int y = world.getMinY(); y < world.getMaxY(); y += 8) {
+                        BlockPos checkPos = playerPos.offset(x, y, z);
 
-                        if (world.isChunkLoaded(checkPos)) {
+                        if (world.isLoaded(checkPos)) {
                             // Força atualização de redstone nesta região
-                            world.updateNeighborsAlways(checkPos, world.getBlockState(checkPos).getBlock());
+                            world.updateNeighborsAt(checkPos, world.getBlockState(checkPos).getBlock());
                         }
                     }
                 }
@@ -441,14 +456,14 @@ public class AdventureSeason
     }
 
     private void updatePlayerActionBar(MinecraftServer server) {
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 
-            ServerWorld world = (ServerWorld) player.getWorld();
-            RegistryEntry<Biome> biomeEntry = world.getBiome(player.getBlockPos());
+            ServerLevel world = player.level();
+            Holder<Biome> biomeEntry = world.getBiome(player.blockPosition());
 
-            Identifier biomeId = world.getRegistryManager()
-                    .get(RegistryKeys.BIOME)
-                    .getId(biomeEntry.value());
+            Identifier biomeId = world.registryAccess()
+                    .lookupOrThrow(Registries.BIOME)
+                    .getKey(biomeEntry.value());
 
             String biomeName = biomeId != null ? biomeId.toString() : "desconhecido";
             boolean excluded = AdventureSeasonConfig.isExcludedBiome(biomeId);
@@ -458,15 +473,15 @@ public class AdventureSeason
             int secondsRemaining = ticksRemaining / 20;
 
             if (AdventureSeasonConfig.isDebug()) {
-                player.sendMessage(
-                        Text.translatable(
+                player.sendSystemMessage(
+                        Component.translatable(
                                 "debug.adventure_season.info",
                                 seasonState.getCurrentSeason().getDisplayName(),
                                 seasonState.getCurrentSubSeason().getDisplayName(),
                                 secondsRemaining,
                                 biomeName,
                                 excludedTag,
-                                String.format("%.2f", biomeEntry.value().getTemperature())
+                                String.format("%.2f", biomeEntry.value().getBaseTemperature())
                         ),
                         true
                 );
@@ -475,14 +490,14 @@ public class AdventureSeason
         }
     }
 
-    /*private static void debugRain(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
+    /*private static void debugRain(ServerPlayer player) {
+        ServerLevel world = player.level();
 
         if (!world.isRaining()) {
             return;
         }
 
-        BlockPos pos = player.getBlockPos();
+        BlockPos pos = player.blockPosition();
 
         boolean skyVisible = world.isSkyVisible(pos);
         boolean isRainBiome = world.getBiome(pos).value().getPrecipitation(pos) == Biome.Precipitation.RAIN;
@@ -490,12 +505,12 @@ public class AdventureSeason
 
         if (skyVisible && isRainBiome || isSnowBiome) {
             player.sendMessage(
-                    Text.literal("Está pegando chuva"),
+                    Component.literal("Está pegando chuva"),
                     true
             );
         } else {
             player.sendMessage(
-                    Text.literal("Não está pegando chuva"),
+                    Component.literal("Não está pegando chuva"),
                     true
             );
         }
@@ -509,16 +524,16 @@ public class AdventureSeason
         return temporaryMeltableCache.contains(blockPos.asLong());
     }
 
-    public static PlacedMeltablesState getPlacedMeltablesState(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(PlacedMeltablesState.getPersistentStateType(), "seasons_placed_meltables");
+    public static PlacedMeltablesState getPlacedMeltablesState(ServerLevel world) {
+        return world.getDataStorage().computeIfAbsent(PlacedMeltablesState.getPersistentStateType());
     }
 
-    public static ReplacedMeltablesState getReplacedMeltablesState(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(ReplacedMeltablesState.getPersistentStateType(), "seasons_replaced_meltables");
+    public static ReplacedMeltablesState getReplacedMeltablesState(ServerLevel world) {
+        return world.getDataStorage().computeIfAbsent(ReplacedMeltablesState.getPersistentStateType());
     }
 
     public static Identifier identifier(String path)
     {
-        return Identifier.of(AdventureSeasons.MODID, path);
+        return Identifier.fromNamespaceAndPath(AdventureSeasons.MODID, path);
     }
 }

@@ -6,8 +6,7 @@ import net.fabricmc.api.ClientModInitializer;
 public class AdventureSeasonsClient implements ClientModInitializer {
 
     @Override
-    public void onInitializeClient()
-    {
+    public void onInitializeClient() {
         AdventureSeasonClient adventureSeasonClient = new AdventureSeasonClient();
         adventureSeasonClient.init();
     }

@@ -7,24 +7,25 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import net.minecraft.command.CommandSource;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 
 public class SeasonCommand
 {
-    private static final SuggestionProvider<ServerCommandSource> SEASON_SUGGESTIONS =
+    private static final SuggestionProvider<CommandSourceStack> SEASON_SUGGESTIONS =
             (context, builder) -> {
-                return CommandSource.suggestMatching(
+                return SharedSuggestionProvider.suggest(
                         new String[]{"SPRING", "SUMMER", "AUTUMN", "WINTER"},
                         builder
                 );
             };
 
-    private static final SuggestionProvider<ServerCommandSource> SUBSEASON_SUGGESTIONS =
+    private static final SuggestionProvider<CommandSourceStack> SUBSEASON_SUGGESTIONS =
             (context, builder) -> {
-                return CommandSource.suggestMatching(
+                return SharedSuggestionProvider.suggest(
                         new String[]{
                                 "EARLY_SPRING", "MID_SPRING", "LATE_SPRING",
                                 "EARLY_SUMMER", "MID_SUMMER", "LATE_SUMMER",
@@ -35,37 +36,37 @@ public class SeasonCommand
                 );
             };
 
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-                CommandManager.literal("season")
+                Commands.literal("season")
                         .executes(SeasonCommand::getCurrentSeason)
-                        .then(CommandManager.literal("set")
-                                .requires(source -> source.hasPermissionLevel(2))
-                                .then(CommandManager.argument("subseason", StringArgumentType.string())
+                        .then(Commands.literal("set")
+                                .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                                .then(Commands.argument("subseason", StringArgumentType.string())
                                         .suggests(SUBSEASON_SUGGESTIONS)
                                         .executes(SeasonCommand::setSubSeason)
                                 )
                         )
-                        .then(CommandManager.literal("setseason")
-                                .requires(source -> source.hasPermissionLevel(2))
-                                .then(CommandManager.argument("season", StringArgumentType.string())
+                        .then(Commands.literal("setseason")
+                                .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                                .then(Commands.argument("season", StringArgumentType.string())
                                         .suggests(SEASON_SUGGESTIONS)
                                         .executes(SeasonCommand::setSeason)
                                 )
                         )
-                        .then(CommandManager.literal("next")
-                                .requires(source -> source.hasPermissionLevel(2))
+                        .then(Commands.literal("next")
+                                .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                                 .executes(SeasonCommand::nextSubSeason)
                         )
         );
     }
 
-    private static int getCurrentSeason(CommandContext<ServerCommandSource> context) {
+    private static int getCurrentSeason(CommandContext<CommandSourceStack> context) {
         Season.SubSeason currentSubSeason = SeasonState.getSubSeason();
         Season currentSeason = SeasonState.get();
 
-        context.getSource().sendFeedback(
-                () -> Text.translatable("command.season.current",
+        context.getSource().sendSuccess(
+                () -> Component.translatable("command.season.current",
                         currentSeason.getDisplayName(),
                         currentSubSeason.getDisplayName()),
                 false
@@ -73,7 +74,7 @@ public class SeasonCommand
         return 1;
     }
 
-    private static int setSubSeason(CommandContext<ServerCommandSource> context) {
+    private static int setSubSeason(CommandContext<CommandSourceStack> context) {
         String subSeasonName = StringArgumentType.getString(context, "subseason").toUpperCase();
 
         try {
@@ -81,15 +82,15 @@ public class SeasonCommand
 
             SeasonState.set(subSeason);
 
-            context.getSource().sendFeedback(
-                    () -> Text.translatable("command.season.set.subseason.success",
+            context.getSource().sendSuccess(
+                    () -> Component.translatable("command.season.set.subseason.success",
                             subSeason.getSeason().getDisplayName(),
                             subSeason.getDisplayName()),
                     true
             );
 
-            context.getSource().getServer().getPlayerManager().broadcast(
-                    Text.translatable("command.season.set.subseason.broadcast",
+            context.getSource().getServer().getPlayerList().broadcastSystemMessage(
+                    Component.translatable("command.season.set.subseason.broadcast",
                             subSeason.getSeason().getDisplayName(),
                             subSeason.getDisplayName()),
                     false
@@ -100,14 +101,14 @@ public class SeasonCommand
 
             return 1;
         } catch (IllegalArgumentException e) {
-            context.getSource().sendError(
-                    Text.translatable("command.season.set.subseason.invalid")
+            context.getSource().sendFailure(
+                    Component.translatable("command.season.set.subseason.invalid")
             );
             return 0;
         }
     }
 
-    private static int setSeason(CommandContext<ServerCommandSource> context) {
+    private static int setSeason(CommandContext<CommandSourceStack> context) {
         String seasonName = StringArgumentType.getString(context, "season").toUpperCase();
 
         try {
@@ -122,14 +123,14 @@ public class SeasonCommand
 
             SeasonState.set(subSeason);
 
-            context.getSource().sendFeedback(
-                    () -> Text.translatable("command.season.set.season.success",
+            context.getSource().sendSuccess(
+                    () -> Component.translatable("command.season.set.season.success",
                             season.getDisplayName()),
                     true
             );
 
-            context.getSource().getServer().getPlayerManager().broadcast(
-                    Text.translatable("command.season.set.season.broadcast",
+            context.getSource().getServer().getPlayerList().broadcastSystemMessage(
+                    Component.translatable("command.season.set.season.broadcast",
                             season.getDisplayName()),
                     false
             );
@@ -139,20 +140,20 @@ public class SeasonCommand
 
             return 1;
         } catch (IllegalArgumentException e) {
-            context.getSource().sendError(
-                    Text.translatable("command.season.set.season.invalid")
+            context.getSource().sendFailure(
+                    Component.translatable("command.season.set.season.invalid")
             );
             return 0;
         }
     }
 
-    private static int nextSubSeason(CommandContext<ServerCommandSource> context) {
+    private static int nextSubSeason(CommandContext<CommandSourceStack> context) {
         Season.SubSeason oldSubSeason = SeasonState.getSubSeason();
         SeasonState.next();
         Season.SubSeason newSubSeason = SeasonState.getSubSeason();
 
-        context.getSource().sendFeedback(
-                () -> Text.translatable("command.season.next.success",
+        context.getSource().sendSuccess(
+                () -> Component.translatable("command.season.next.success",
                         oldSubSeason.getSeason().getDisplayName(),
                         oldSubSeason.getDisplayName(),
                         newSubSeason.getSeason().getDisplayName(),
@@ -160,8 +161,8 @@ public class SeasonCommand
                 true
         );
 
-        context.getSource().getServer().getPlayerManager().broadcast(
-                Text.translatable("command.season.next.broadcast",
+        context.getSource().getServer().getPlayerList().broadcastSystemMessage(
+                Component.translatable("command.season.next.broadcast",
                         newSubSeason.getSeason().getDisplayName(),
                         newSubSeason.getDisplayName()),
                 false

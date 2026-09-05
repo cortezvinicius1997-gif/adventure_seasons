@@ -7,15 +7,15 @@ import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
 import com.cortez.adventure_seasons.lib.resources.GrassSeasonColors;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.noise.SimplexNoiseSampler;
-import net.minecraft.util.math.random.CheckedRandom;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.BiomeEffects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeSpecialEffects;
+import net.minecraft.world.level.levelgen.synth.SimplexNoise;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,15 +29,14 @@ import java.util.Optional;
 @Mixin(Biome.class)
 public abstract class BiomeClientMixin {
 
-    @Shadow @Final private Biome.Weather weather;
-    @Shadow @Final private BiomeEffects effects;
+    @Shadow @Final private BiomeSpecialEffects specialEffects;
 
-    @Shadow protected abstract int getDefaultGrassColor();
-    @Shadow protected abstract int getDefaultFoliageColor();
+    @Shadow public abstract int getBaseGrassColor();
+    @Shadow public abstract int getFoliageColorFromTexture();
 
     // Noise sampler próprio para substituir TEMPERATURE_NOISE
     @Unique
-    private static final SimplexNoiseSampler SEASON_NOISE = new SimplexNoiseSampler(new CheckedRandom(2345L));
+    private static final SimplexNoise SEASON_NOISE = new SimplexNoise(RandomSource.create(2345L));
 
     /**
      * Obtém a subestação atual, usando a versão sincronizada do servidor em multiplayer
@@ -49,7 +48,25 @@ public abstract class BiomeClientMixin {
                 : SeasonState.getSubSeason();
     }
 
-    @Inject(at = @At("TAIL"), method = "getGrassColorAt", cancellable = true)
+    /**
+     * Temperatura original (não modificada pela estação) via accessor do ClimateSettings
+     */
+    @Unique
+    private float getOriginalClimateTemperature() {
+        Object climateSettings = BiomeAccessor.getClimateSettings((Biome) (Object) this);
+        return ((BiomeWeatherAccessor) (Object) climateSettings).getTemperature();
+    }
+
+    /**
+     * Downfall original (não modificado pela estação) via accessor do ClimateSettings
+     */
+    @Unique
+    private float getOriginalClimateDownfall() {
+        Object climateSettings = BiomeAccessor.getClimateSettings((Biome) (Object) this);
+        return ((BiomeWeatherAccessor) (Object) climateSettings).getDownfall();
+    }
+
+    @Inject(at = @At("TAIL"), method = "getGrassColor", cancellable = true)
     public void getSeasonGrassColor(double x, double z, CallbackInfoReturnable<Integer> cir) {
         Biome biome = (Biome) ((Object) this);
         Optional<Integer> overridedColor;
@@ -58,10 +75,10 @@ public abstract class BiomeClientMixin {
         if(ColorsCache.hasGrassCache(biome)) {
             overridedColor = ColorsCache.getGrassCache(biome);
         }else {
-            overridedColor = effects.getGrassColor();
-            World world = MinecraftClient.getInstance().world;
+            overridedColor = specialEffects.grassColorOverride();
+            Level world = Minecraft.getInstance().level;
             if(world != null) {
-                Identifier biomeIdentifier = world.getRegistryManager().get(RegistryKeys.BIOME).getId(biome);
+                Identifier biomeIdentifier = world.registryAccess().lookupOrThrow(Registries.BIOME).getKey(biome);
                 Optional<Integer> seasonGrassColor = GrassSeasonColors.getSeasonGrassColor(biome, biomeIdentifier, subSeason);
                 if(seasonGrassColor.isPresent()) {
                     overridedColor = seasonGrassColor;
@@ -69,15 +86,15 @@ public abstract class BiomeClientMixin {
             }
             ColorsCache.createGrassCache(biome, overridedColor);
         }
-        if(effects.getGrassColorModifier() == BiomeEffects.GrassColorModifier.SWAMP) {
+        if(specialEffects.grassColorModifier() == BiomeSpecialEffects.GrassColorModifier.SWAMP) {
             int swampColor1 = GrassSeasonColors.getSwampColor1(subSeason);
             int swampColor2 = GrassSeasonColors.getSwampColor2(subSeason);
 
-            double d = SEASON_NOISE.sample(x * 0.0225D, z * 0.0225D, 0.0D);
+            double d = SEASON_NOISE.getValue(x * 0.0225D, z * 0.0225D, 0.0D);
             cir.setReturnValue(d < -0.1D ? swampColor1 : swampColor2);
         }else if(overridedColor != null){
-            Integer integer = overridedColor.orElseGet(this::getDefaultGrassColor);
-            cir.setReturnValue(effects.getGrassColorModifier().getModifiedGrassColor(x, z, integer));
+            Integer integer = overridedColor.orElseGet(this::getBaseGrassColor);
+            cir.setReturnValue(specialEffects.grassColorModifier().modifyColor(x, z, integer));
         }
     }
 
@@ -90,10 +107,10 @@ public abstract class BiomeClientMixin {
         if(ColorsCache.hasFoliageCache(biome)) {
             overridedColor = ColorsCache.getFoliageCache(biome);
         }else{
-            overridedColor = effects.getFoliageColor();
-            World world = MinecraftClient.getInstance().world;
+            overridedColor = specialEffects.foliageColorOverride();
+            Level world = Minecraft.getInstance().level;
             if(world != null) {
-                Identifier biomeIdentifier = world.getRegistryManager().get(RegistryKeys.BIOME).getId(biome);
+                Identifier biomeIdentifier = world.registryAccess().lookupOrThrow(Registries.BIOME).getKey(biome);
                 Optional<Integer> seasonFoliageColor = FoliageSeasonColors.getSeasonFoliageColor(biome, biomeIdentifier, subSeason);
                 if(seasonFoliageColor.isPresent()) {
                     overridedColor = seasonFoliageColor;
@@ -102,41 +119,39 @@ public abstract class BiomeClientMixin {
             ColorsCache.createFoliageCache(biome, overridedColor);
         }
         if(overridedColor != null) {
-            Integer integer = overridedColor.orElseGet(this::getDefaultFoliageColor);
+            Integer integer = overridedColor.orElseGet(this::getFoliageColorFromTexture);
             cir.setReturnValue(integer);
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "getDefaultFoliageColor", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "getFoliageColorFromTexture", cancellable = true)
     public void getSeasonDefaultFolliageColor(CallbackInfoReturnable<Integer> cir) {
         BiomeMixed mixed = (BiomeMixed) (Object) this;
-        Biome.Weather originalWeather = mixed.getOriginalWeather();
         Season.SubSeason subSeason = getCurrentSubSeason();
 
-        if(originalWeather != null) {
-            double originalTemperature = MathHelper.clamp(originalWeather.temperature(), 0.0F, 1.0F);
-            double originalDownfall = MathHelper.clamp(originalWeather.downfall(), 0.0F, 1.0F);
+        if(mixed.getOriginalTemperatureModifier() != null) {
+            double originalTemperature = Mth.clamp(mixed.getOriginalTemperature(), 0.0F, 1.0F);
+            double originalDownfall = Mth.clamp(mixed.getOriginalDownfall(), 0.0F, 1.0F);
             cir.setReturnValue(FoliageSeasonColors.getColor(subSeason, originalTemperature, originalDownfall));
         }else{
-            double temperature = MathHelper.clamp(this.weather.temperature(), 0.0F, 1.0F);
-            double downfall = MathHelper.clamp(this.weather.downfall(), 0.0F, 1.0F);
+            double temperature = Mth.clamp(getOriginalClimateTemperature(), 0.0F, 1.0F);
+            double downfall = Mth.clamp(getOriginalClimateDownfall(), 0.0F, 1.0F);
             cir.setReturnValue(FoliageSeasonColors.getColor(subSeason, temperature, downfall));
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "getDefaultGrassColor", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "getBaseGrassColor", cancellable = true)
     public void getSeasonDefaultGrassColor(CallbackInfoReturnable<Integer> cir) {
         BiomeMixed mixed = (BiomeMixed) (Object) this;
-        Biome.Weather originalWeather = mixed.getOriginalWeather();
         Season.SubSeason subSeason = getCurrentSubSeason();
 
-        if(originalWeather != null) {
-            double d = MathHelper.clamp(originalWeather.temperature(), 0.0F, 1.0F);
-            double e = MathHelper.clamp(originalWeather.downfall(), 0.0F, 1.0F);
+        if(mixed.getOriginalTemperatureModifier() != null) {
+            double d = Mth.clamp(mixed.getOriginalTemperature(), 0.0F, 1.0F);
+            double e = Mth.clamp(mixed.getOriginalDownfall(), 0.0F, 1.0F);
             cir.setReturnValue(GrassSeasonColors.getColor(subSeason, d, e));
         }else{
-            double d = MathHelper.clamp(this.weather.temperature(), 0.0F, 1.0F);
-            double e = MathHelper.clamp(this.weather.downfall(), 0.0F, 1.0F);
+            double d = Mth.clamp(getOriginalClimateTemperature(), 0.0F, 1.0F);
+            double e = Mth.clamp(getOriginalClimateDownfall(), 0.0F, 1.0F);
             cir.setReturnValue(GrassSeasonColors.getColor(subSeason, d, e));
         }
     }

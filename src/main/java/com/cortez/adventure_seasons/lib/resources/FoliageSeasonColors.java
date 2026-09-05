@@ -6,11 +6,11 @@ import com.cortez.adventure_seasons.lib.season.Season.SubSeason;
 import com.cortez.adventure_seasons.lib.util.SeasonColor;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.client.util.RawTextureDataLoader;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.client.resources.LegacyStuffWrapper;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.level.biome.Biome;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -108,28 +108,28 @@ public class FoliageSeasonColors implements SimpleSynchronousResourceReloadListe
 
     @Override
     public Identifier getFabricId() {
-        return Identifier.of(AdventureSeasons.MODID, "foliage_season_colors");
+        return Identifier.fromNamespaceAndPath(AdventureSeasons.MODID, "foliage_season_colors");
     }
 
     @Override
-    public void reload(ResourceManager manager) {
+    public void onResourceManagerReload(ResourceManager manager) {
         try{
             Resource spruceFoliage = manager.getResource(AdventureSeason.identifier("hardcoded/foliage/spruce.json")).orElseThrow();
-            minecraftSpruceFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(spruceFoliage.getInputStream(), StandardCharsets.UTF_8)));
+            minecraftSpruceFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(spruceFoliage.open(), StandardCharsets.UTF_8)));
             Resource birchFoliage = manager.getResource(AdventureSeason.identifier("hardcoded/foliage/birch.json")).orElseThrow();
-            minecraftBirchFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(birchFoliage.getInputStream(), StandardCharsets.UTF_8)));
+            minecraftBirchFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(birchFoliage.open(), StandardCharsets.UTF_8)));
             Resource defaultFoliage = manager.getResource(AdventureSeason.identifier("hardcoded/foliage/default.json")).orElseThrow();
-            minecraftDefaultFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(defaultFoliage.getInputStream(), StandardCharsets.UTF_8)));
+            minecraftDefaultFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(defaultFoliage.open(), StandardCharsets.UTF_8)));
         }catch (Exception e) {
             AdventureSeasons.LOGGER.error("[Adventure Mod] Failed to load hardcoded foliage colors", e);
         }
 
         foliageColorMap.clear();
-        manager.findResources("seasons/foliage", id -> id.getPath().endsWith(".json")).forEach((id, resource) -> {
+        manager.listResources("seasons/foliage", id -> id.getPath().endsWith(".json")).forEach((id, resource) -> {
             String[] split = id.getPath().split("/");
-            Identifier biomeIdentifier = Identifier.of(id.getNamespace(), split[split.length-1].replace(".json", ""));
+            Identifier biomeIdentifier = Identifier.fromNamespaceAndPath(id.getNamespace(), split[split.length-1].replace(".json", ""));
             try {
-                SeasonColor colors = new SeasonColor(JsonParser.parseReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)));
+                SeasonColor colors = new SeasonColor(JsonParser.parseReader(new InputStreamReader(resource.open(), StandardCharsets.UTF_8)));
                 foliageColorMap.put(biomeIdentifier, colors);
             }catch(Exception e) {
                 AdventureSeasons.LOGGER.error("[Adventure Mod] Failed to load biome foliage colors for: "+biomeIdentifier, e);
@@ -141,21 +141,21 @@ public class FoliageSeasonColors implements SimpleSynchronousResourceReloadListe
 
         // Carregar todos os 12 colormaps
         try {
-            earlySpringColorMap = RawTextureDataLoader.loadRawTextureData(manager, EARLY_SPRING_FOLIAGE_COLORMAP);
-            midSpringColorMap = RawTextureDataLoader.loadRawTextureData(manager, MID_SPRING_FOLIAGE_COLORMAP);
-            lateSpringColorMap = RawTextureDataLoader.loadRawTextureData(manager, LATE_SPRING_FOLIAGE_COLORMAP);
+            earlySpringColorMap = LegacyStuffWrapper.getPixels(manager, EARLY_SPRING_FOLIAGE_COLORMAP);
+            midSpringColorMap = LegacyStuffWrapper.getPixels(manager, MID_SPRING_FOLIAGE_COLORMAP);
+            lateSpringColorMap = LegacyStuffWrapper.getPixels(manager, LATE_SPRING_FOLIAGE_COLORMAP);
 
-            earlySummerColorMap = RawTextureDataLoader.loadRawTextureData(manager, EARLY_SUMMER_FOLIAGE_COLORMAP);
-            midSummerColorMap = RawTextureDataLoader.loadRawTextureData(manager, MID_SUMMER_FOLIAGE_COLORMAP);
-            lateSummerColorMap = RawTextureDataLoader.loadRawTextureData(manager, LATE_SUMMER_FOLIAGE_COLORMAP);
+            earlySummerColorMap = LegacyStuffWrapper.getPixels(manager, EARLY_SUMMER_FOLIAGE_COLORMAP);
+            midSummerColorMap = LegacyStuffWrapper.getPixels(manager, MID_SUMMER_FOLIAGE_COLORMAP);
+            lateSummerColorMap = LegacyStuffWrapper.getPixels(manager, LATE_SUMMER_FOLIAGE_COLORMAP);
 
-            earlyAutumnColorMap = RawTextureDataLoader.loadRawTextureData(manager, EARLY_AUTUMN_FOLIAGE_COLORMAP);
-            midAutumnColorMap = RawTextureDataLoader.loadRawTextureData(manager, MID_AUTUMN_FOLIAGE_COLORMAP);
-            lateAutumnColorMap = RawTextureDataLoader.loadRawTextureData(manager, LATE_AUTUMN_FOLIAGE_COLORMAP);
+            earlyAutumnColorMap = LegacyStuffWrapper.getPixels(manager, EARLY_AUTUMN_FOLIAGE_COLORMAP);
+            midAutumnColorMap = LegacyStuffWrapper.getPixels(manager, MID_AUTUMN_FOLIAGE_COLORMAP);
+            lateAutumnColorMap = LegacyStuffWrapper.getPixels(manager, LATE_AUTUMN_FOLIAGE_COLORMAP);
 
-            earlyWinterColorMap = RawTextureDataLoader.loadRawTextureData(manager, EARLY_WINTER_FOLIAGE_COLORMAP);
-            midWinterColorMap = RawTextureDataLoader.loadRawTextureData(manager, MID_WINTER_FOLIAGE_COLORMAP);
-            lateWinterColorMap = RawTextureDataLoader.loadRawTextureData(manager, LATE_WINTER_FOLIAGE_COLORMAP);
+            earlyWinterColorMap = LegacyStuffWrapper.getPixels(manager, EARLY_WINTER_FOLIAGE_COLORMAP);
+            midWinterColorMap = LegacyStuffWrapper.getPixels(manager, MID_WINTER_FOLIAGE_COLORMAP);
+            lateWinterColorMap = LegacyStuffWrapper.getPixels(manager, LATE_WINTER_FOLIAGE_COLORMAP);
 
             AdventureSeasons.LOGGER.info("[Adventure Mod] Successfully loaded all 12 subseason foliage colormaps.");
         } catch (IOException e) {

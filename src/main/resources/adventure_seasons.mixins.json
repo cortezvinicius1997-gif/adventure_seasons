@@ -2,16 +2,11 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.cortez.adventure_seasons.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "BiomeAccessor",
+    "AbstractBlockMixin",
     "BiomeWeatherAccessor",
     "BiomeMixin",
-    "IceBlockMixin",
-    "SnowBlockMixin",
-    "WorldViewMixin",
-    "ServerWorldMixin",
-    "AbstractBlockMixin",
     "CropBlockMixin",
     "StemBlockMixin",
     "SaplingBlockMixin",
@@ -19,10 +14,13 @@
     "NetherWartBlockMixin",
     "BambooBlockMixin",
     "CactusBlockMixin",
-    "SugarCaneBlockMixin"
+    "SugarCaneBlockMixin",
+    "ServerWorldMixin",
+    "IceBlockMixin",
+    "SnowBlockMixin",
+    "WorldViewMixin"
   ],
   "client": [
-    "BiomeAccessor",
     "BiomeWeatherAccessor",
     "BlockColorsMixin",
     "WorldRendererMixin",
@@ -31,8 +29,5 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  },
-  "overwrites": {
-    "requireAnnotations": true
   }
 }

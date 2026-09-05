@@ -1,13 +1,9 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "group": "season_sensor",
   "key": {
-    "#": {
-      "item": "minecraft:deepslate_brick_slab"
-    },
-    "I": {
-      "item": "minecraft:item_frame"
-    }
+    "#": "minecraft:deepslate_brick_slab",
+    "I": "minecraft:item_frame"
   },
   "pattern": [
     "   ",
@@ -15,7 +11,6 @@
     "###"
   ],
   "result": {
-    "count": 1,
     "id": "adventure_seasons:season_sensor"
   }
 }

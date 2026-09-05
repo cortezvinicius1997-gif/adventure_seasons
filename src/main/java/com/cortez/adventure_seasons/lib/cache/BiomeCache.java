@@ -1,12 +1,12 @@
 package com.cortez.adventure_seasons.lib.cache;
 
 import com.cortez.adventure_seasons.AdventureSeasons;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.biome.Biome;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -19,13 +19,13 @@ public final class BiomeCache {
 
     private BiomeCache() {}
 
-    public static void init(ServerWorld world) {
+    public static void init(ServerLevel world) {
         if (initialized) return;
 
-        biomeRegistry = world.getRegistryManager().get(RegistryKeys.BIOME);
+        biomeRegistry = world.registryAccess().lookupOrThrow(Registries.BIOME);
 
-        for (Map.Entry<RegistryKey<Biome>, Biome> entry : biomeRegistry.getEntrySet()) {
-            Identifier id = entry.getKey().getValue();
+        for (Map.Entry<ResourceKey<Biome>, Biome> entry : biomeRegistry.entrySet()) {
+            Identifier id = entry.getKey().identifier();
             CACHE.put(entry.getValue(), id);
         }
 
@@ -40,9 +40,8 @@ public final class BiomeCache {
     public static Identifier get(Biome biome) {
         Identifier id = CACHE.get(biome);
 
-        // Se não estiver no cache e o registro estiver disponível, tenta buscar
         if (id == null && biomeRegistry != null) {
-            id = biomeRegistry.getId(biome);
+            id = biomeRegistry.getKey(biome);
             if (id != null) {
                 CACHE.put(biome, id);
             }

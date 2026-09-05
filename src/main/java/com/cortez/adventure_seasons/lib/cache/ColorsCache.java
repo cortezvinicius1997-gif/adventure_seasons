@@ -1,6 +1,6 @@
 package com.cortez.adventure_seasons.lib.cache;
 
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.level.biome.Biome;
 
 import java.util.HashMap;
 import java.util.Optional;

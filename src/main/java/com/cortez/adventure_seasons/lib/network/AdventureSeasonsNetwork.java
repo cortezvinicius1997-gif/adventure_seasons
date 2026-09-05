@@ -11,8 +11,7 @@ public class AdventureSeasonsNetwork
 
     public static void registerS2CPackets() {
 
-        // Registra o tipo de payload no cliente e no servidor
-        PayloadTypeRegistry.playS2C().register(
+        PayloadTypeRegistry.clientboundPlay().register(
                 SeasonSyncPayload.ID,
                 SeasonSyncPayload.CODEC
         );

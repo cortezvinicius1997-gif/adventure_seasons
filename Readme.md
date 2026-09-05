@@ -156,3 +156,10 @@ Contribuições são bem-vindas! Por favor, abra uma issue ou pull request.
 - Mudanças visuais de cores
 - Comandos de administração
 - Sistema de configuração JSON
+- Minecraft 1.21.1 compatível com Fabric
+
+### v1.1.0
+
+- Correção de bugs
+- melhoria na configuração
+- Minecraft 26.2 compatível com Fabric

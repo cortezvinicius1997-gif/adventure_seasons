@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class AdventureSeasonData {
-
     public Set<String> excludedBiomes;
     public String season_start;
     public boolean winter_rain;
@@ -18,6 +17,12 @@ public class AdventureSeasonData {
     public boolean shouldSnowReplaceVegetation;
     public boolean isServer;
 
+    // Wrapper types (Boolean/Double/Integer) para permitir detectar
+    // configs antigas onde esses campos ainda não existiam (valor null),
+    // ao invés de confundir com um valor primitivo "0"/"false" explícito.
+    public Boolean springSaplingSpawnEnabled;
+    public Double springSaplingSpawnChance;
+    public Integer maxSaplingsPerChunk;
 
     public static AdventureSeasonData defaultConfig() {
         AdventureSeasonData data = new AdventureSeasonData();
@@ -73,13 +78,14 @@ public class AdventureSeasonData {
         data.biomeForceSnowInWinterList.add("minecraft:plains");
         data.biomeForceSnowInWinterList.add("minecraft:sunflower_plains");
         data.biomeForceSnowInWinterList.add("minecraft:stony_peaks");
-        data.isFallAndSpringReversed = true;
+        data.isFallAndSpringReversed = false;
         data.shouldSnowyBiomesMeltInSummer = true;
         data.shouldIceNearWaterMelt = false;
         data.shouldSnowReplaceVegetation = true;
         data.isServer = false;
-
-
+        data.springSaplingSpawnEnabled = true;
+        data.springSaplingSpawnChance = 0.003;
+        data.maxSaplingsPerChunk = 1;
 
         return data;
     }

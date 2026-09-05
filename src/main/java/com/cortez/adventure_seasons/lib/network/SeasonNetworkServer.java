@@ -7,14 +7,13 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 
 public class SeasonNetworkServer {
     private static Season.SubSeason lastSyncedSubSeason = null;
     private static int lastSyncedTicks = -1;
 
     public static void init() {
-        // Quando um jogador se conecta, envia a estação atual
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             SeasonState state = SeasonState.getOrCreate(server);
             if (state == null) {
@@ -54,13 +53,11 @@ public class SeasonNetworkServer {
         lastSyncedTicks = currentTicks;
         SeasonSyncPayload payload = new SeasonSyncPayload(currentSubSeason, currentTicks);
 
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (ServerPlayNetworking.canSend(player, SeasonSyncPayload.ID)) {
                 ServerPlayNetworking.send(player, payload);
             }
         }
-
-        //AdventureSeasons.LOGGER.info("[Adventure Seasons Server] Estação sincronizada para todos os jogadores: " + currentSubSeason);
     }
 
     /**
@@ -80,4 +77,3 @@ public class SeasonNetworkServer {
         lastSyncedTicks = -1;
     }
 }
-

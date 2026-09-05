@@ -2,32 +2,30 @@
   "schemaVersion": 1,
   "id": "adventure_seasons",
   "version": "${version}",
-
-  "name": "Adventure Seasons",
-  "description": "A realistic seasons mod that affects temperature, crop growth, foliage colors and weather. Features 4 main seasons with 12 sub-seasons.",
-  "authors": ["Vinicius Cortez", "José Inácio"],
-  "contact": {
-    "homepage": "https://github.com/cortezvinicius1997-gif/adventure_seasons",
-    "sources": "https://github.com/cortezvinicius1997-gif/adventure_seasons"
-  },
-
+  "name": "adventure_seasons",
+  "description": "",
+  "authors": [],
+  "contact": {},
   "license": "All-Rights-Reserved",
   "icon": "assets/adventure_seasons/icon.png",
-
   "environment": "*",
   "entrypoints": {
-    "fabric-datagen": ["com.cortez.adventure_seasons.client.AdventureSeasonsDataGenerator"],
-    "client": ["com.cortez.adventure_seasons.client.AdventureSeasonsClient"],
-    "main": ["com.cortez.adventure_seasons.AdventureSeasons"],
+    "fabric-datagen": [
+      "com.cortez.adventure_seasons.client.AdventureSeasonsDataGenerator"
+    ],
     "modmenu": [
       "com.cortez.adventure_seasons.menu.AdventureSeasonsModMenu"
+    ],
+    "client": [
+      "com.cortez.adventure_seasons.client.AdventureSeasonsClient"
+    ],
+    "main": [
+      "com.cortez.adventure_seasons.AdventureSeasons"
     ]
   },
-  "accessWidener": "adventure_seasons.accesswidener",
   "mixins": [
     "adventure_seasons.mixins.json"
   ],
-
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",

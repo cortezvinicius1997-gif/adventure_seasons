@@ -1,4 +1,4 @@
-package com.cortez.adventure_seasons.mixin;
+package com.cortez.adventure_seasons.lib.util;
 
 import net.minecraft.world.level.biome.Biome;
 

@@ -1,52 +1,55 @@
 package com.cortez.adventure_seasons.lib.hud;
 import com.cortez.adventure_seasons.block.custom.SeasonCalendar;
+import com.cortez.adventure_seasons.lib.AdventureSeason;
 import com.cortez.adventure_seasons.lib.config.AdventureSeasonConfig;
 import com.cortez.adventure_seasons.lib.network.SeasonNetworkClient;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.core.BlockPos;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 public class SeasonCalendarTooltipRenderer {
     public static void register() {
-        HudRenderCallback.EVENT.register((context, tickCounter) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null || client.world == null || client.isPaused()) return;
-            HitResult hit = client.crosshairTarget;
+        HudElementRegistry.addLast(AdventureSeason.identifier("season_calendar_tooltip"), (graphics, deltaTracker) -> {
+            Minecraft client = Minecraft.getInstance();
+            if (client.player == null || client.level == null || client.isPaused()) return;
+            HitResult hit = client.hitResult;
             if (hit == null || hit.getType() != HitResult.Type.BLOCK) return;
             BlockHitResult blockHit = (BlockHitResult) hit;
             BlockPos pos = blockHit.getBlockPos();
-            BlockState state = client.world.getBlockState(pos);
+            BlockState state = client.level.getBlockState(pos);
             if (!(state.getBlock() instanceof SeasonCalendar)) return;
-            Season.SubSeason subSeason = state.get(SeasonCalendar.SUBSEASON);
+            Season.SubSeason subSeason = state.getValue(SeasonCalendar.SUBSEASON);
             Season season = subSeason.getSeason();
 
-            // Em multiplayer (conectado a servidor remoto), usa dados sincronizados via networking
             if (SeasonNetworkClient.isInitialized()) {
-                renderTooltipWithNetworkData(context, client, season, subSeason);
+                renderTooltipWithNetworkData(graphics, client, season, subSeason);
                 return;
             }
 
-            // Check if we're on a remote server - if so, use client-side cached state
-            MinecraftServer server = client.getServer();
-            // Protecao adicional: em servidores multiplayer, client.getServer() retorna null
-            // ou o servidor integrado nao esta rodando. Usa o estado em cache.
-            if (server == null || !client.isIntegratedServerRunning()) {
-                // On a multiplayer server, use cached/static season state
-                renderTooltipWithCachedState(context, client, season, subSeason);
+            MinecraftServer server = client.getSingleplayerServer();
+            if (server == null || !client.hasSingleplayerServer()) {
+                renderTooltipWithCachedState(graphics, client, season, subSeason);
                 return;
             }
             SeasonState seasonState = SeasonState.getOrCreate(server);
             if (seasonState == null) {
-                renderTooltipWithCachedState(context, client, season, subSeason);
+                renderTooltipWithCachedState(graphics, client, season, subSeason);
                 return;
             }
             int currentTicks = seasonState.getTicksInCurrentSubSeason();
@@ -97,19 +100,19 @@ public class SeasonCalendarTooltipRenderer {
             int current_days = accumulatedTicks / 24000;
             int total_days = duration / 24000;
             String days = current_days + "/" + total_days;
-            List<Text> tooltipLines = new ArrayList<>();
-            tooltipLines.add(Text.translatable("block.adventure_seasons.season_calendar").formatted(Formatting.BLUE));
-            tooltipLines.add(Text.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).formatted(Formatting.GRAY));
-            tooltipLines.add(Text.translatable("tooltip.adventure_seasons.duration", days).formatted(Formatting.GRAY));
-            int windowWidth = context.getScaledWindowWidth();
-            int windowHeight = context.getScaledWindowHeight();
+            List<Component> tooltipLines = new ArrayList<>();
+            tooltipLines.add(Component.translatable("block.adventure_seasons.season_calendar").withStyle(ChatFormatting.BLUE));
+            tooltipLines.add(Component.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).withStyle(ChatFormatting.GRAY));
+            tooltipLines.add(Component.translatable("tooltip.adventure_seasons.duration", days).withStyle(ChatFormatting.GRAY));
+            int windowWidth = graphics.guiWidth();
+            int windowHeight = graphics.guiHeight();
             int x = windowWidth / 2 + 8;
             int y = windowHeight / 2 + 8;
-            context.drawTooltip(client.textRenderer, tooltipLines, x, y);
+            graphics.setComponentTooltipForNextFrame(client.font, tooltipLines, x, y);
         });
     }
-    private static void renderTooltipWithCachedState(net.minecraft.client.gui.DrawContext context,
-                                                      MinecraftClient client,
+    private static void renderTooltipWithCachedState(GuiGraphicsExtractor graphics,
+                                                      Minecraft client,
                                                       Season season,
                                                       Season.SubSeason subSeason) {
         Season.SubSeason currentSubSeason = SeasonState.getSubSeason();
@@ -132,22 +135,19 @@ public class SeasonCalendarTooltipRenderer {
                     + AdventureSeasonConfig.getTicksPerSeason().getWinter().getLateLength();
         }
         int total_days = duration / 24000;
-        List<Text> tooltipLines = new ArrayList<>();
-        tooltipLines.add(Text.translatable("block.adventure_seasons.season_calendar").formatted(Formatting.BLUE));
-        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).formatted(Formatting.GRAY));
-        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.total_duration", total_days).formatted(Formatting.GRAY));
-        int windowWidth = context.getScaledWindowWidth();
-        int windowHeight = context.getScaledWindowHeight();
+        List<Component> tooltipLines = new ArrayList<>();
+        tooltipLines.add(Component.translatable("block.adventure_seasons.season_calendar").withStyle(ChatFormatting.BLUE));
+        tooltipLines.add(Component.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).withStyle(ChatFormatting.GRAY));
+        tooltipLines.add(Component.translatable("tooltip.adventure_seasons.total_duration", total_days).withStyle(ChatFormatting.GRAY));
+        int windowWidth = graphics.guiWidth();
+        int windowHeight = graphics.guiHeight();
         int x = windowWidth / 2 + 8;
         int y = windowHeight / 2 + 8;
-        context.drawTooltip(client.textRenderer, tooltipLines, x, y);
+        graphics.setComponentTooltipForNextFrame(client.font, tooltipLines, x, y);
     }
 
-    /**
-     * Renderiza tooltip usando dados sincronizados via networking (multiplayer remoto)
-     */
-    private static void renderTooltipWithNetworkData(net.minecraft.client.gui.DrawContext context,
-                                                      MinecraftClient client,
+    private static void renderTooltipWithNetworkData(GuiGraphicsExtractor graphics,
+                                                      Minecraft client,
                                                       Season season,
                                                       Season.SubSeason subSeason) {
         int currentTicks = SeasonNetworkClient.getTicks();
@@ -201,15 +201,20 @@ public class SeasonCalendarTooltipRenderer {
         int total_days = duration / 24000;
         String days = current_days + "/" + total_days;
 
-        List<Text> tooltipLines = new ArrayList<>();
-        tooltipLines.add(Text.translatable("block.adventure_seasons.season_calendar").formatted(Formatting.BLUE));
-        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).formatted(Formatting.GRAY));
-        tooltipLines.add(Text.translatable("tooltip.adventure_seasons.duration", days).formatted(Formatting.GRAY));
+        List<Component> tooltipLines = new ArrayList<>();
+        tooltipLines.add(Component.translatable("block.adventure_seasons.season_calendar").withStyle(ChatFormatting.BLUE));
+        tooltipLines.add(Component.translatable("tooltip.adventure_seasons.season", season.getDisplayName()).withStyle(ChatFormatting.GRAY));
+        tooltipLines.add(Component.translatable("tooltip.adventure_seasons.duration", days).withStyle(ChatFormatting.GRAY));
 
-        int windowWidth = context.getScaledWindowWidth();
-        int windowHeight = context.getScaledWindowHeight();
+        List<ClientTooltipComponent> tooltipComponents = tooltipLines.stream()
+                .map(Component::getVisualOrderText)
+                .map(ClientTooltipComponent::create)
+                .collect(Collectors.toList());
+
+        int windowWidth = graphics.guiWidth();
+        int windowHeight = graphics.guiHeight();
         int x = windowWidth / 2 + 8;
         int y = windowHeight / 2 + 8;
-        context.drawTooltip(client.textRenderer, tooltipLines, x, y);
+        graphics.tooltip(client.font, tooltipComponents, x, y, DefaultTooltipPositioner.INSTANCE, null);
     }
 }

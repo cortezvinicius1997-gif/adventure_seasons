@@ -5,11 +5,11 @@ import com.cortez.adventure_seasons.lib.network.SeasonNetworkClient;
 import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
-import net.minecraft.client.color.world.BiomeColors;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.noise.SimplexNoiseSampler;
-import net.minecraft.util.math.random.CheckedRandom;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.client.renderer.BiomeColors;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.levelgen.synth.SimplexNoise;
+import net.minecraft.util.RandomSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,7 +21,7 @@ public class BiomeColorsMixin {
 
     // Noise sampler próprio para substituir TEMPERATURE_NOISE
     @Unique
-    private static final SimplexNoiseSampler SEASON_NOISE = new SimplexNoiseSampler(new CheckedRandom(2345L));
+    private static final SimplexNoise SEASON_NOISE = new SimplexNoise(RandomSource.create(2345L));
 
     /**
      * Obtém a estação atual, usando a versão sincronizada do servidor em multiplayer
@@ -33,16 +33,18 @@ public class BiomeColorsMixin {
                 : SeasonState.get();
     }
 
+    // O resolver de cor da folhagem (BiomeColors.FOLIAGE_COLOR_RESOLVER) é o análogo direto
+    // do antigo method_23791. Recebe (Biome, x, z) e devolve a cor da folhagem do bioma.
     @SuppressWarnings({"ConstantValue", "removal"})
-    @Inject(at = @At("RETURN"), method = "method_23791", cancellable = true)
+    @Inject(at = @At("RETURN"), method = "lambda$static$1", cancellable = true)
     private static void enhanceFallColors(Biome biome, double x, double z, CallbackInfoReturnable<Integer> cir) {
         Season season = getCurrentSeason();
-        if(season == Season.AUTUMN && ((Object) biome) instanceof BiomeMixed mixed && mixed.getOriginalWeather() != null) {
-            double d = MathHelper.clamp(mixed.getOriginalWeather().temperature(), 0.0F, 1.0F);
-            double e = MathHelper.clamp(mixed.getOriginalWeather().downfall(), 0.0F, 1.0F);
+        if(season == Season.AUTUMN && ((Object) biome) instanceof BiomeMixed mixed && mixed.getOriginalTemperatureModifier() != null) {
+            double d = Mth.clamp(mixed.getOriginalTemperature(), 0.0F, 1.0F);
+            double e = Mth.clamp(mixed.getOriginalDownfall(), 0.0F, 1.0F);
             int fallFoliageColor = FoliageSeasonColors.getColor(Season.SubSeason.EARLY_AUTUMN, d, e);
             if(cir.getReturnValue() == fallFoliageColor) {
-                double sample = SEASON_NOISE.sample(x * 0.0225, z * 0.0225, 0.0);
+                double sample = SEASON_NOISE.getValue(x * 0.0225, z * 0.0225, 0.0);
                 cir.setReturnValue(sample < 0.25 ? fallFoliageColor : FoliageSeasonColors.getColor(Season.SubSeason.EARLY_AUTUMN, 0.85, 0.9));
             }
         }

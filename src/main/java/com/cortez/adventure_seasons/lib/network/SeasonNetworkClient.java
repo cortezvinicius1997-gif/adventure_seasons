@@ -7,7 +7,7 @@ import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public class SeasonNetworkClient {
     // Estado da estação sincronizado do servidor
@@ -40,10 +40,7 @@ public class SeasonNetworkClient {
                 if (oldSubSeason != newSubSeason) {
                     ColorsCache.clear();
 
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    if (client.worldRenderer != null) {
-                        client.worldRenderer.reload();
-                    }
+                    Minecraft.getInstance().levelExtractor.allChanged();
                 }
             });
         });
@@ -71,4 +68,3 @@ public class SeasonNetworkClient {
         initialized = false;
     }
 }
-

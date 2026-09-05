@@ -1,67 +1,63 @@
 package com.cortez.adventure_seasons.lib.season;
 
 import com.cortez.adventure_seasons.AdventureSeasons;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.World;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.SavedDataStorage;
 
-public class SeasonState extends PersistentState {
-
+public class SeasonState extends SavedData {
     private static final String KEY = "adventure_seasons_state";
-    private static final int DIRTY_INTERVAL = 100; // Marcar como dirty a cada 100 ticks para performance
+    private static final int DIRTY_INTERVAL = 100;
 
     private Season.SubSeason currentSubSeason = Season.SubSeason.EARLY_SPRING;
     private int ticksInCurrentSubSeason = 0;
     private int ticksSinceLastSave = 0;
 
-    // Instância estática (carregada do mundo)
     private static SeasonState instance;
 
     public SeasonState() {
         super();
     }
 
-    // Carrega ou cria o estado da estação
     public static SeasonState getOrCreate(MinecraftServer server) {
-        // Verificação de null para evitar NullPointerException
         if (server == null) {
-            return instance; // Retorna instância atual (pode ser null em multiplayer client)
+            return instance;
         }
 
         if (instance == null) {
-            var overworld = server.getWorld(World.OVERWORLD);
+            var overworld = server.getLevel(Level.OVERWORLD);
             if (overworld == null) {
                 return null;
             }
 
-            PersistentStateManager manager = overworld.getPersistentStateManager();
-
-            instance = manager.getOrCreate(
-                    new Type<>(
-                            SeasonState::new,
-                            SeasonState::fromNbt,
-                            null
-                    ),
-                    KEY
-            );
+            SavedDataStorage manager = overworld.getDataStorage();
+            instance = manager.computeIfAbsent(getPersistentStateType());
         }
         return instance;
     }
 
-    // Lê os dados do NBT
-    public static SeasonState fromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
+    private CompoundTag toTag() {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putString("SubSeason", currentSubSeason.name());
+        nbt.putInt("TicksInSubSeason", ticksInCurrentSubSeason);
+        return nbt;
+    }
+
+    private static DataResult<SeasonState> fromTag(CompoundTag nbt) {
         SeasonState state = new SeasonState();
 
-        String subSeasonName = nbt.getString("SubSeason");
+        String subSeasonName = nbt.getString("SubSeason").orElse("");
 
-        // Retrocompatibilidade: se não houver SubSeason, tenta carregar Season antiga
         if (subSeasonName.isEmpty()) {
-            String seasonName = nbt.getString("Season");
+            String seasonName = nbt.getString("Season").orElse("");
             if (!seasonName.isEmpty()) {
-                // Converte Season antiga para SubSeason (sempre começa no início)
                 try {
                     Season oldSeason = Season.valueOf(seasonName);
                     state.currentSubSeason = switch (oldSeason) {
@@ -84,70 +80,59 @@ public class SeasonState extends PersistentState {
             }
         }
 
-        state.ticksInCurrentSubSeason = nbt.getInt("TicksInSubSeason");
+        state.ticksInCurrentSubSeason = nbt.getInt("TicksInSubSeason").orElse(0);
         if (state.ticksInCurrentSubSeason == 0) {
-            state.ticksInCurrentSubSeason = nbt.getInt("TicksInSeason"); // Retrocompatibilidade
+            state.ticksInCurrentSubSeason = nbt.getInt("TicksInSeason").orElse(0);
         }
 
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Subestação carregada: " + state.currentSubSeason +
                 " (Ticks: " + state.ticksInCurrentSubSeason + ")");
 
-        return state;
+        return DataResult.success(state);
     }
 
-    // Salva os dados no NBT
-    @Override
-    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        nbt.putString("SubSeason", currentSubSeason.name());
-        nbt.putInt("TicksInSubSeason", ticksInCurrentSubSeason);
-        return nbt;
+    public static final Codec<SeasonState> CODEC = CompoundTag.CODEC.comapFlatMap(
+            SeasonState::fromTag,
+            state -> state.toTag()
+    );
+
+    public static SavedDataType<SeasonState> getPersistentStateType() {
+        return new SavedDataType<>(
+                Identifier.fromNamespaceAndPath(AdventureSeasons.MODID, KEY),
+                SeasonState::new,
+                CODEC,
+                DataFixTypes.LEVEL
+        );
     }
 
-    // Getters e Setters
-    public Season.SubSeason getCurrentSubSeason() {
-        return currentSubSeason;
-    }
-
-    public Season getCurrentSeason() {
-        return currentSubSeason.getSeason();
-    }
+    public Season.SubSeason getCurrentSubSeason() { return currentSubSeason; }
+    public Season getCurrentSeason() { return currentSubSeason.getSeason(); }
+    public int getTicksInCurrentSubSeason() { return ticksInCurrentSubSeason; }
 
     public void setCurrentSubSeason(Season.SubSeason subSeason) {
         this.currentSubSeason = subSeason;
-        markDirty();
-    }
-
-    public int getTicksInCurrentSubSeason() {
-        return ticksInCurrentSubSeason;
+        setDirty();
     }
 
     public void addTicks(int amount) {
         this.ticksInCurrentSubSeason += amount;
-        markDirty();
-    }
-
-    public void setTicksInCurrentSubSeason(int ticks) {
-        this.ticksInCurrentSubSeason = ticks;
-        markDirty();
+        setDirty();
     }
 
     public void incrementTicks() {
         this.ticksInCurrentSubSeason++;
         this.ticksSinceLastSave++;
-
-        // Otimização: só marca dirty periodicamente para evitar salvamentos excessivos
         if (this.ticksSinceLastSave >= DIRTY_INTERVAL) {
             this.ticksSinceLastSave = 0;
-            markDirty();
+            setDirty();
         }
     }
 
     public void resetTicks() {
         this.ticksInCurrentSubSeason = 0;
-        markDirty();
+        setDirty();
     }
 
-    // Avança para a próxima subestação
     public void nextSubSeason() {
         currentSubSeason = switch (currentSubSeason) {
             case EARLY_SPRING -> Season.SubSeason.MID_SPRING;
@@ -167,7 +152,6 @@ public class SeasonState extends PersistentState {
         AdventureSeasons.LOGGER.info("[Adventure Seasons] Nova subestação: " + currentSubSeason);
     }
 
-    // Métodos estáticos de conveniência
     public static Season get() {
         return instance != null ? instance.getCurrentSeason() : Season.SPRING;
     }
@@ -188,10 +172,6 @@ public class SeasonState extends PersistentState {
         }
     }
 
-    /**
-     * Atualiza a instância cliente com dados recebidos do servidor.
-     * Usado apenas no cliente para sincronização em multiplayer.
-     */
     public static void updateFromServer(Season.SubSeason subSeason, int ticks) {
         if (instance == null) {
             instance = new SeasonState();
@@ -200,10 +180,6 @@ public class SeasonState extends PersistentState {
         instance.ticksInCurrentSubSeason = ticks;
     }
 
-    /**
-     * Limpa a instância estática. Deve ser chamado quando o servidor para
-     * para evitar memory leaks e problemas em reloads.
-     */
     public static void clearInstance() {
         instance = null;
     }
