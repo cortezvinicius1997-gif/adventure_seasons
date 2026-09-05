@@ -170,6 +170,42 @@ public class AdventureSeasonConfigScreen {
                         .build()
         );
 
+        saplings.addEntry(
+                entryBuilder.startBooleanToggle(
+                                Component.literal("Nascimento Espontâneo de Mato/Flores"),
+                                AdventureSeasonConfig.isSpringVegetationSpawnEnabled()
+                        )
+                        .setDefaultValue(true)
+                        .setTooltip(Component.literal("Se grama/flores podem nascer sozinhas na primavera (independente das mudas)."))
+                        .setSaveConsumer(AdventureSeasonConfig::setSpringVegetationSpawnEnabled)
+                        .build()
+        );
+
+        saplings.addEntry(
+                entryBuilder.startDoubleField(
+                                Component.literal("Chance de Nascer Mato/Flores (0.0 a 1.0)"),
+                                AdventureSeasonConfig.getSpringVegetationSpawnChance()
+                        )
+                        .setDefaultValue(0.02)
+                        .setMin(0.0)
+                        .setMax(1.0)
+                        .setTooltip(Component.literal("Chance de cada posição elegível virar grama/flor na primavera. Padrão: 0.02 (2%)."))
+                        .setSaveConsumer(AdventureSeasonConfig::setSpringVegetationSpawnChance)
+                        .build()
+        );
+
+        saplings.addEntry(
+                entryBuilder.startIntField(
+                                Component.literal("Máximo de Mato/Flores por Chunk"),
+                                AdventureSeasonConfig.getMaxVegetationPerChunk()
+                        )
+                        .setDefaultValue(40)
+                        .setMin(0)
+                        .setTooltip(Component.literal("Máximo de grama/flores que podem nascer sozinhas por chunk, durante uma mesma primavera. Evita que o mato se acumule sem parar."))
+                        .setSaveConsumer(AdventureSeasonConfig::setMaxVegetationPerChunk)
+                        .build()
+        );
+
         // ==================== DURAÇÃO DAS ESTAÇÕES ====================
         ConfigCategory lengths = builder.getOrCreateCategory(
                 Component.literal("Duração das Estações")

@@ -21,6 +21,11 @@ public class AdventureSeasonBlocks
     public static final Block SEASONSENSOR = registerBlock("season_sensor",properties -> new SeasonSensor(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).setId(ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(AdventureSeasons.MODID,"season_sensor")))));
     public static final Block SEASONCALENDAR = registerBlock("season_calendar",properties -> new SeasonCalendar(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS).setId(ResourceKey.create(Registries.BLOCK,Identifier.fromNamespaceAndPath(AdventureSeasons.MODID,"season_calendar")))));
 
+
+    public static ResourceKey<Block> getRK(Block block) {
+        return BuiltInRegistries.BLOCK.getResourceKey(block).get();
+    }
+
     private static Block registerBlock(String name, Function<BlockBehaviour.Properties, Block> function) {
         Block toRegister = function.apply(BlockBehaviour.Properties.of().setId(ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(AdventureSeasons.MODID, name))));
         registerBlockItem(name, toRegister);

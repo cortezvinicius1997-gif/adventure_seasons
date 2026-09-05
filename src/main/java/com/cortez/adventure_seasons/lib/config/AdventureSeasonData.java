@@ -23,6 +23,9 @@ public class AdventureSeasonData {
     public Boolean springSaplingSpawnEnabled;
     public Double springSaplingSpawnChance;
     public Integer maxSaplingsPerChunk;
+    public Boolean springVegetationSpawnEnabled;
+    public Double springVegetationSpawnChance;
+    public Integer maxVegetationPerChunk;
 
     public static AdventureSeasonData defaultConfig() {
         AdventureSeasonData data = new AdventureSeasonData();
@@ -78,7 +81,7 @@ public class AdventureSeasonData {
         data.biomeForceSnowInWinterList.add("minecraft:plains");
         data.biomeForceSnowInWinterList.add("minecraft:sunflower_plains");
         data.biomeForceSnowInWinterList.add("minecraft:stony_peaks");
-        data.isFallAndSpringReversed = false;
+        data.isFallAndSpringReversed = true;
         data.shouldSnowyBiomesMeltInSummer = true;
         data.shouldIceNearWaterMelt = false;
         data.shouldSnowReplaceVegetation = true;
@@ -86,6 +89,9 @@ public class AdventureSeasonData {
         data.springSaplingSpawnEnabled = true;
         data.springSaplingSpawnChance = 0.003;
         data.maxSaplingsPerChunk = 1;
+        data.springVegetationSpawnEnabled = true;
+        data.springVegetationSpawnChance = 0.02;
+        data.maxVegetationPerChunk = 40;
 
         return data;
     }

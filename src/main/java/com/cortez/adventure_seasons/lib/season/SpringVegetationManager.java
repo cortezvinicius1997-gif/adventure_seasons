@@ -29,14 +29,20 @@ public class SpringVegetationManager {
     private static final int CHECK_INTERVAL = 5;
     private static final int CHUNKS_PER_TICK = 8;
     private static final int BLOCKS_PER_CHUNK = 16;
-    private static final double SPAWN_CHANCE = 0.15;
     private static final double FLOWER_CHANCE = 0.03;
+    // SPAWN_CHANCE agora vem de AdventureSeasonConfig.getSpringVegetationSpawnChance()
+    // (era um valor fixo de 0.15, muito alto, e sem limite por chunk - por isso nascia
+    // mato demais durante o meio da primavera).
     // SAPLING_CHANCE e MAX_SAPLINGS_PER_CHUNK agora vêm da config
     // (AdventureSeasonConfig.getSpringSaplingSpawnChance() / getMaxSaplingsPerChunk()),
     // permitindo ao jogador ajustar ou desligar o nascimento automático de árvores.
 
     // Controle de saplings por chunk
     private static final Map<ChunkPos, Integer> chunkSaplingCount = new HashMap<>();
+
+    // Controle de vegetação (grama/flores) por chunk, pra evitar que o mato
+    // se acumule infinitamente enquanto a primavera durar.
+    private static final Map<ChunkPos, Integer> chunkVegetationCount = new HashMap<>();
 
     // Mapeamento de biomas para vegetação apropriada
     private static final Map<String, List<Block>> BIOME_VEGETATION = new HashMap<>();
@@ -197,6 +203,9 @@ public class SpringVegetationManager {
             if (!chunkSaplingCount.isEmpty()) {
                 chunkSaplingCount.clear();
             }
+            if (!chunkVegetationCount.isEmpty()) {
+                chunkVegetationCount.clear();
+            }
             return;
         }
 
@@ -237,6 +246,10 @@ public class SpringVegetationManager {
         int chunkZ = chunkPos.getMiddleBlockZ();
 
         chunkSaplingCount.putIfAbsent(chunkPos, 0);
+        chunkVegetationCount.putIfAbsent(chunkPos, 0);
+
+        double vegetationSpawnChance = AdventureSeasonConfig.getSpringVegetationSpawnChance();
+        int maxVegetationPerChunk = AdventureSeasonConfig.getMaxVegetationPerChunk();
 
         for (int i = 0; i < BLOCKS_PER_CHUNK; i++) {
             int x = chunkX + RANDOM.nextInt(16);
@@ -248,7 +261,7 @@ public class SpringVegetationManager {
                     z
             );
 
-            if (RANDOM.nextDouble() < SPAWN_CHANCE) {
+            if (RANDOM.nextDouble() < vegetationSpawnChance) {
                 boolean saplingSpawnEnabled = AdventureSeasonConfig.isSpringSaplingSpawnEnabled();
                 int currentSaplings = chunkSaplingCount.get(chunkPos);
                 boolean canSpawnSapling = saplingSpawnEnabled
@@ -260,8 +273,11 @@ public class SpringVegetationManager {
                     if (trySpawnSapling(world, topPos)) {
                         chunkSaplingCount.put(chunkPos, currentSaplings + 1);
                     }
-                } else {
-                    trySpawnVegetation(world, topPos);
+                } else if (AdventureSeasonConfig.isSpringVegetationSpawnEnabled()) {
+                    int currentVegetation = chunkVegetationCount.get(chunkPos);
+                    if (currentVegetation < maxVegetationPerChunk && trySpawnVegetation(world, topPos)) {
+                        chunkVegetationCount.put(chunkPos, currentVegetation + 1);
+                    }
                 }
             }
         }

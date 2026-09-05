@@ -86,6 +86,18 @@ public class AdventureSeasonConfig {
             data.maxSaplingsPerChunk = 1;
             hasChanges = true;
         }
+        if (data.springVegetationSpawnChance == null) {
+            data.springVegetationSpawnChance = 0.02;
+            hasChanges = true;
+        }
+        if (data.springVegetationSpawnEnabled == null) {
+            data.springVegetationSpawnEnabled = true;
+            hasChanges = true;
+        }
+        if (data.maxVegetationPerChunk == null) {
+            data.maxVegetationPerChunk = 40;
+            hasChanges = true;
+        }
 
         if (hasChanges) {
             File configFile = FabricLoader.getInstance()
@@ -197,6 +209,21 @@ public class AdventureSeasonConfig {
         return data.maxSaplingsPerChunk == null ? 1 : data.maxSaplingsPerChunk;
     }
 
+    /** Chance (0.0 a 1.0) de uma posição elegível virar grama/flor na primavera. Padrão: 0.02 (2%). */
+    public static double getSpringVegetationSpawnChance() {
+        return data.springVegetationSpawnChance == null ? 0.02 : data.springVegetationSpawnChance;
+    }
+
+    /** Se falso, grama/flores nunca nascem sozinhas na primavera (mudas continuam seguindo sua própria config). */
+    public static boolean isSpringVegetationSpawnEnabled() {
+        return data.springVegetationSpawnEnabled == null || data.springVegetationSpawnEnabled;
+    }
+
+    /** Máximo de plantas (grama/flores) que podem nascer sozinhas por chunk durante uma mesma primavera. Padrão: 40. */
+    public static int getMaxVegetationPerChunk() {
+        return data.maxVegetationPerChunk == null ? 40 : data.maxVegetationPerChunk;
+    }
+
     public static void setServer(boolean isServer) {
         data.isServer = isServer;
         File configFile = FabricLoader.getInstance()
@@ -219,6 +246,21 @@ public class AdventureSeasonConfig {
     public static void setMaxSaplingsPerChunk(int max) {
         data.maxSaplingsPerChunk = max;
         save(FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME).toFile());
+    }
+
+    public static void setSpringVegetationSpawnChance(double chance) {
+        data.springVegetationSpawnChance = chance;
+        save(configFile());
+    }
+
+    public static void setSpringVegetationSpawnEnabled(boolean enabled) {
+        data.springVegetationSpawnEnabled = enabled;
+        save(configFile());
+    }
+
+    public static void setMaxVegetationPerChunk(int max) {
+        data.maxVegetationPerChunk = max;
+        save(configFile());
     }
 
     // ==== Setters gerados para exibir/editar todas as opções do JSON no ClothConfig ====
