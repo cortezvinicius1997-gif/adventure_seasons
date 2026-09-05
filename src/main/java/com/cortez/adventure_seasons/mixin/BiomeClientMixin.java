@@ -7,6 +7,7 @@ import com.cortez.adventure_seasons.lib.resources.FoliageSeasonColors;
 import com.cortez.adventure_seasons.lib.resources.GrassSeasonColors;
 import com.cortez.adventure_seasons.lib.season.Season;
 import com.cortez.adventure_seasons.lib.season.SeasonState;
+import com.cortez.adventure_seasons.lib.util.BiomeAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -37,6 +38,9 @@ public abstract class BiomeClientMixin {
     // Noise sampler próprio para substituir TEMPERATURE_NOISE
     @Unique
     private static final SimplexNoise SEASON_NOISE = new SimplexNoise(RandomSource.create(2345L));
+
+    @Unique
+    private static final Identifier SWAMP_ID = Identifier.fromNamespaceAndPath("minecraft", "swamp");
 
     /**
      * Obtém a subestação atual, usando a versão sincronizada do servidor em multiplayer
@@ -114,6 +118,11 @@ public abstract class BiomeClientMixin {
                 Optional<Integer> seasonFoliageColor = FoliageSeasonColors.getSeasonFoliageColor(biome, biomeIdentifier, subSeason);
                 if(seasonFoliageColor.isPresent()) {
                     overridedColor = seasonFoliageColor;
+                } else if(SWAMP_ID.equals(biomeIdentifier)) {
+                    // O vanilla define "foliage_color" fixo no JSON do bioma pântano (não deriva de
+                    // temperatura/umidade como os demais biomas), então sem esse caso especial ele
+                    // nunca mudaria de cor com a estação.
+                    overridedColor = Optional.of(FoliageSeasonColors.getSwampFoliageColor(subSeason));
                 }
             }
             ColorsCache.createFoliageCache(biome, overridedColor);

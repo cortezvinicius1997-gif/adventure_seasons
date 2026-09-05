@@ -22,7 +22,6 @@
   ],
   "client": [
     "BiomeWeatherAccessor",
-    "BlockColorsMixin",
     "WorldRendererMixin",
     "BiomeColorsMixin",
     "BiomeClientMixin"

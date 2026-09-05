@@ -57,6 +57,7 @@ public class FoliageSeasonColors implements SimpleSynchronousResourceReloadListe
     private static SeasonColor minecraftDefaultFoliage;
     private static SeasonColor minecraftSpruceFoliage;
     private static SeasonColor minecraftBirchFoliage;
+    private static SeasonColor minecraftSwampFoliage;
 
     private static final HashMap<Identifier, SeasonColor> foliageColorMap = new HashMap<>();
 
@@ -106,6 +107,11 @@ public class FoliageSeasonColors implements SimpleSynchronousResourceReloadListe
         return minecraftDefaultFoliage.getColor(subSeason);
     }
 
+    /** Cor de folhagem específica do bioma de pântano (swamp), que no vanilla é fixa e não varia por temperatura/umidade. */
+    public static int getSwampFoliageColor(SubSeason subSeason) {
+        return minecraftSwampFoliage.getColor(subSeason);
+    }
+
     @Override
     public Identifier getFabricId() {
         return Identifier.fromNamespaceAndPath(AdventureSeasons.MODID, "foliage_season_colors");
@@ -120,6 +126,8 @@ public class FoliageSeasonColors implements SimpleSynchronousResourceReloadListe
             minecraftBirchFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(birchFoliage.open(), StandardCharsets.UTF_8)));
             Resource defaultFoliage = manager.getResource(AdventureSeason.identifier("hardcoded/foliage/default.json")).orElseThrow();
             minecraftDefaultFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(defaultFoliage.open(), StandardCharsets.UTF_8)));
+            Resource swampFoliage = manager.getResource(AdventureSeason.identifier("hardcoded/foliage/swamp.json")).orElseThrow();
+            minecraftSwampFoliage = new SeasonColor(JsonParser.parseReader(new InputStreamReader(swampFoliage.open(), StandardCharsets.UTF_8)));
         }catch (Exception e) {
             AdventureSeasons.LOGGER.error("[Adventure Mod] Failed to load hardcoded foliage colors", e);
         }
