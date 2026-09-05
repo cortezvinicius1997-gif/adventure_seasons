@@ -83,7 +83,7 @@ O arquivo de configuração é criado em `config/adventure_seasons.json`:
   "winter_rain": true,
   "debug": false,
   "doTemperatureChange": true,
-  "isFallAndSpringReversed": true,
+  "isFallAndSpringReversed": false,
   "shouldSnowyBiomesMeltInSummer": true,
   "shouldIceNearWaterMelt": false,
   "shouldSnowReplaceVegetation": true,
